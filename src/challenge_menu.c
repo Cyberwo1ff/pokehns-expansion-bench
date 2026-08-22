@@ -976,8 +976,8 @@ static const u8 *const sDesc_ItemTrainer[] = {
     COMPOUND_STRING("Enemy trainers can NOT use battle\nitems."),
 };
 static const u8 *const sDesc_ItemLimit[] = {
-    COMPOUND_STRING("The player can use as many battle\nitems per battle as they like."),
     COMPOUND_STRING("The player can only use 4 battle\nitems per battle!"),
+    COMPOUND_STRING("The player can use as many battle\nitems per battle as they like."),
 };
 static const u8 *const sDesc_NoEVs[] = {
     COMPOUND_STRING("The player's {PKMN} gain effort\nvalues as expected."),
@@ -2040,7 +2040,7 @@ static void Task_ConfirmSaveYes(u8 taskId)
     cs->tx_Challenges_ExpMultiplier   = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_EXP_MULTIPLIER);
     cs->tx_Challenges_NoItemPlayer    = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_ITEM_PLAYER);
     cs->tx_Challenges_NoItemTrainer   = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_ITEM_TRAINER);
-    cs->tx_Challenges_ItemLimit       = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_ITEM_LIMIT);
+    cs->tx_Challenges_ItemLimit       = !(*GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_ITEM_LIMIT));
     cs->tx_Challenges_NoEVs           = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_NO_EVS);
     cs->tx_Challenges_TrainerScalingIVs = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_SCALING_IVS);
     cs->tx_Challenges_TrainerScalingEVs = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_SCALING_EVS);
@@ -2246,7 +2246,7 @@ void CB2_InitChallengeMenu(void)
             *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_EXP_MULTIPLIER) = cs->tx_Challenges_ExpMultiplier;
             *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_ITEM_PLAYER)    = cs->tx_Challenges_NoItemPlayer;
             *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_ITEM_TRAINER)   = cs->tx_Challenges_NoItemTrainer;
-            *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_ITEM_LIMIT)     = cs->tx_Challenges_ItemLimit;
+            *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_ITEM_LIMIT)     = !cs->tx_Challenges_ItemLimit;
             *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_NO_EVS)         = cs->tx_Challenges_NoEVs;
             *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_SCALING_IVS)    = cs->tx_Challenges_TrainerScalingIVs;
             *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_SCALING_EVS)    = cs->tx_Challenges_TrainerScalingEVs;
