@@ -11996,6 +11996,8 @@ void ApplyExperienceMultipliers(s32 *expAmount, u8 expGetterMonId, u8 faintedBat
         *expAmount = *expAmount * 2;
     else if (expMult == 1)
         *expAmount = (*expAmount * 3) / 2;
+    else if (expMult == 4)
+        *expAmount = (*expAmount * 4) / 5;
 }
 
 void BS_ItemRestoreHP(void)
