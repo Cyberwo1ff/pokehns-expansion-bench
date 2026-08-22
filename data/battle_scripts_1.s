@@ -7263,6 +7263,10 @@ BattleScript_ActionSelectionItemsCantBeUsed::
 	printselectionstring STRINGID_ITEMSCANTBEUSEDNOW
 	endselectionscript
 
+BattleScript_ActionSelectionFourItemsUsed::
+	printselectionstring STRINGID_FOURITEMSUSED
+	endselectionscript
+
 BattleScript_FlushMessageBox::
 	flushtextbox
 	return
