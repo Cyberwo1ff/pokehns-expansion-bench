@@ -4699,7 +4699,7 @@ static void HandleTurnActionSelectionState(void)
                         gLastUsedItem = (gBattleResources->bufferB[battler][1] | (gBattleResources->bufferB[battler][2] << 8));
                         if (GetItemPocket(gLastUsedItem) == POCKET_POKE_BALLS)
                             gBattleStruct->throwingPokeBall = TRUE;
-                        if (ShouldBattleRestrictionsApply(battler))
+                        else if (ShouldBattleRestrictionsApply(battler))
                             gItemLimit++;
                         gBattleCommunication[battler]++;
                     }
