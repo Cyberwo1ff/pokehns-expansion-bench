@@ -342,6 +342,11 @@ static const u8 *const sChoices_OffOn[] = {
     COMPOUND_STRING("ON"),
 };
 
+static const u8 *const sChoices_OffScale[] = {
+    COMPOUND_STRING("OFF"),
+    COMPOUND_STRING("SCALE"),
+};
+
 static const u8 *const sChoices_OnOff[] = {
     COMPOUND_STRING("ON"),
     COMPOUND_STRING("OFF"),
@@ -1072,10 +1077,10 @@ static const struct ChallengeMenuItem sTabItems_Difficulty[] = {
         .choiceNames  = sChoices_OffOn,
     },
     [ITEM_DIFFICULTY_WILD_SCALING] = {
-        .name         = COMPOUND_STRING("WILD SCALING"),
+        .name         = COMPOUND_STRING("WILD {PKMN} SCALING"),
         .descriptions = sDesc_WildScaling,
         .numChoices   = 2,
-        .choiceNames  = sChoices_OffOn,
+        .choiceNames  = sChoices_OffScale,
     },
     [ITEM_DIFFICULTY_MAX_PARTY_IVS] = {
         .name         = COMPOUND_STRING("PLAYER IVs"),
