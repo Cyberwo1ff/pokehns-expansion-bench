@@ -4472,6 +4472,8 @@ static void HandleTurnActionSelectionState(void)
                     else if (gSaveBlock3Ptr->challengeSettings.tx_Challenges_ItemLimit
                             && gItemLimit >= 4
                             && ShouldBattleRestrictionsApply(battler)
+                            // Exempt all wild battles (solo or double) -- only trainer battles are subject to the item limit.
+                            && (gBattleTypeFlags & BATTLE_TYPE_TRAINER)
                             && !(gBattleTypeFlags & (BATTLE_TYPE_LINK
                                                     | BATTLE_TYPE_FRONTIER_NO_PYRAMID
                                                     | BATTLE_TYPE_EREADER_TRAINER
