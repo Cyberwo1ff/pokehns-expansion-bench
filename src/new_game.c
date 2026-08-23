@@ -156,9 +156,6 @@ void SetDefaultChallengeSettings(void)
     gSaveblock3.challengeSettings.tx_Nuzlocke_SpeciesClause  = 1;
     gSaveblock3.challengeSettings.tx_Nuzlocke_ShinyClause    = 1;
     gSaveblock3.challengeSettings.tx_Nuzlocke_Nicknaming     = 1;
-
-    // Difficulty tab — EXP. MULTIPLIER index 1 is x1.0 (0 is x0.6, not the default)
-    gSaveblock3.challengeSettings.tx_Challenges_ExpMultiplier = 1;
 }
 
 static void ClearPokedexFlags(void)
