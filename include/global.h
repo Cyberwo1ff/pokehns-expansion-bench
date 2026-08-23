@@ -300,6 +300,7 @@ struct ChallengeSettings
     u8 tx_Challenges_NoItemPlayer:1;
     u8 tx_Challenges_NoItemTrainer:1;
     u8 tx_Challenges_ItemLimit:1;
+    u8 tx_Challenges_WildScaling:1;
     u8 tx_Challenges_PkmnCenter:2;
     u8 tx_Challenges_LessEscapes:1;
     u8 tx_Challenges_BaseStatEqualizer:2;

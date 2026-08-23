@@ -335,6 +335,27 @@ static u32 ChooseWildMonIndex_Fishing(u8 rod)
     return wildMonIndex;
 }
 
+// Flat level bonus added to wild encounters when WILD SCALING is enabled, scaling up with badge count.
+static u8 GetWildScalingLevelBonus(void)
+{
+    static const u8 sBonusTable[NUM_BADGES + 1] = {0, 0, 1, 3, 4, 5, 6, 7, 8}; // indexed by badge count
+    u16 i;
+    u8 badgeCount;
+
+    if (!gSaveBlock3Ptr->challengeSettings.tx_Challenges_WildScaling)
+        return 0;
+    if (FlagGet(FLAG_SYS_GAME_CLEAR))
+        return 10;
+
+    badgeCount = 0;
+    for (i = FLAG_BADGE01_GET; i < FLAG_BADGE01_GET + NUM_BADGES; i++)
+    {
+        if (FlagGet(i))
+            badgeCount++;
+    }
+    return sBonusTable[badgeCount];
+}
+
 static u8 ChooseWildMonLevel(const struct WildPokemon *wildPokemon, u8 wildMonIndex, enum WildPokemonArea area)
 {
     u8 min;
@@ -365,13 +386,13 @@ static u8 ChooseWildMonLevel(const struct WildPokemon *wildPokemon, u8 wildMonIn
             if (ability == ABILITY_HUSTLE || ability == ABILITY_VITAL_SPIRIT || ability == ABILITY_PRESSURE)
             {
                 if (Random() % 2 == 0)
-                    return max;
+                    return max + GetWildScalingLevelBonus();
 
                 if (rand != 0)
                     rand--;
             }
         }
-        return min + rand;
+        return min + rand + GetWildScalingLevelBonus();
     }
     else
     {
