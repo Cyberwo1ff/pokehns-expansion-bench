@@ -6245,7 +6245,8 @@ static void Cmd_getmoneyreward(void)
             u32 depositAmount = money / 4;
             if (depositAmount > 0)
             {
-                RemoveMoney(&gSaveBlock1Ptr->money, depositAmount);
+                if (gSaveBlock3Ptr->challengeSettings.tx_Challenges_MomsSavings)
+                    RemoveMoney(&gSaveBlock1Ptr->money, depositAmount);
                 Mom_AutoDepositFromBattle(depositAmount);
             }
         }
