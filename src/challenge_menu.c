@@ -110,6 +110,8 @@ enum {
     ITEM_DIFFICULTY_EXP_MULTIPLIER,
     ITEM_DIFFICULTY_ITEM_PLAYER,
     ITEM_DIFFICULTY_ITEM_TRAINER,
+    ITEM_DIFFICULTY_ITEM_LIMIT,
+    ITEM_DIFFICULTY_WILD_SCALING,
     ITEM_DIFFICULTY_MAX_PARTY_IVS,
     ITEM_DIFFICULTY_SCALING_IVS,
     ITEM_DIFFICULTY_NO_EVS,
@@ -208,6 +210,8 @@ static const u8 sMidGameLockPolicy[TAB_COUNT * MAX_ITEMS_PER_TAB] = {
     [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_EXP_MULTIPLIER] = LOCK_ONEWAY_DOWN,
     [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_ITEM_PLAYER]    = LOCK_ONEWAY_DOWN,
     [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_ITEM_TRAINER]   = LOCK_ONEWAY_DOWN,
+    [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_ITEM_LIMIT]     = LOCK_ONEWAY_DOWN,
+    [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_WILD_SCALING]  = LOCK_ONEWAY_DOWN,
     [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_MAX_PARTY_IVS]  = LOCK_ONEWAY_DOWN,
     [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_SCALING_IVS]    = LOCK_ONEWAY_DOWN,
     [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_NO_EVS]         = LOCK_ONEWAY_DOWN,
@@ -332,6 +336,11 @@ static const u16 sTextPal[] = INCBIN_U16("graphics/interface/option_menu_text_cu
 static const u8 *const sChoices_OffOn[] = {
     COMPOUND_STRING("OFF"),
     COMPOUND_STRING("ON"),
+};
+
+static const u8 *const sChoices_OffScale[] = {
+    COMPOUND_STRING("OFF"),
+    COMPOUND_STRING("SCALE"),
 };
 
 static const u8 *const sChoices_OnOff[] = {
@@ -570,6 +579,7 @@ static const u8 *const sChoices_ExpMult[] = {
     COMPOUND_STRING("x1.0"),
     COMPOUND_STRING("x1.5"),
     COMPOUND_STRING("x2.0"),
+    COMPOUND_STRING("x0.6"),
     COMPOUND_STRING("x0.0"),
 };
 
@@ -961,6 +971,7 @@ static const u8 *const sDesc_ExpMult[] = {
     COMPOUND_STRING("{PKMN} gain normal EXP. Points.\nStacks with HARD MODE EXP."),
     COMPOUND_STRING("{PKMN} gain 50 percent more EXP.\nPoints! Stacks with HARD MODE EXP."),
     COMPOUND_STRING("{PKMN} gain double EXP. Points!\nStacks with HARD MODE EXP."),
+    COMPOUND_STRING("{PKMN} gain 40 percent less EXP.\nPoints. Stacks with HARD MODE EXP."),
     COMPOUND_STRING("{PKMN} gain ZERO EXP. Points!!!\nApplies to HARD MODE EXP. as well."),
 };
 static const u8 *const sDesc_ItemPlayer[] = {
@@ -970,6 +981,14 @@ static const u8 *const sDesc_ItemPlayer[] = {
 static const u8 *const sDesc_ItemTrainer[] = {
     COMPOUND_STRING("Enemy trainers can use battle items."),
     COMPOUND_STRING("Enemy trainers can NOT use battle\nitems."),
+};
+static const u8 *const sDesc_ItemLimit[] = {
+    COMPOUND_STRING("The player can use as many battle\nitems per battle as they like."),
+    COMPOUND_STRING("The player can only use 4 battle\nitems per battle!"),
+};
+static const u8 *const sDesc_WildScaling[] = {
+    COMPOUND_STRING("Wild {PKMN} use their normal level\nrange, unaffected by Badges."),
+    COMPOUND_STRING("Wild {PKMN} levels increase as you\nearn more Gym Badges!"),
 };
 static const u8 *const sDesc_NoEVs[] = {
     COMPOUND_STRING("The player's {PKMN} gain effort\nvalues as expected."),
@@ -1019,7 +1038,7 @@ static const struct ChallengeMenuItem sTabItems_Difficulty[] = {
     [ITEM_DIFFICULTY_EXP_MULTIPLIER] = {
         .name         = COMPOUND_STRING("EXP. MULTIPLIER"),
         .descriptions = sDesc_ExpMult,
-        .numChoices   = 4,
+        .numChoices   = 5,
         .choiceNames  = sChoices_ExpMult,
     },
     [ITEM_DIFFICULTY_ITEM_PLAYER] = {
@@ -1033,6 +1052,18 @@ static const struct ChallengeMenuItem sTabItems_Difficulty[] = {
         .descriptions = sDesc_ItemTrainer,
         .numChoices   = 2,
         .choiceNames  = sChoices_YesNo,
+    },
+    [ITEM_DIFFICULTY_ITEM_LIMIT] = {
+        .name         = COMPOUND_STRING("ITEM LIMIT"),
+        .descriptions = sDesc_ItemLimit,
+        .numChoices   = 2,
+        .choiceNames  = sChoices_OffOn,
+    },
+    [ITEM_DIFFICULTY_WILD_SCALING] = {
+        .name         = COMPOUND_STRING("WILD {PKMN} SCALING"),
+        .descriptions = sDesc_WildScaling,
+        .numChoices   = 2,
+        .choiceNames  = sChoices_OffScale,
     },
     [ITEM_DIFFICULTY_MAX_PARTY_IVS] = {
         .name         = COMPOUND_STRING("PLAYER IVs"),
@@ -2026,6 +2057,8 @@ static void Task_ConfirmSaveYes(u8 taskId)
     cs->tx_Challenges_ExpMultiplier   = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_EXP_MULTIPLIER);
     cs->tx_Challenges_NoItemPlayer    = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_ITEM_PLAYER);
     cs->tx_Challenges_NoItemTrainer   = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_ITEM_TRAINER);
+    cs->tx_Challenges_ItemLimit       = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_ITEM_LIMIT);
+    cs->tx_Challenges_WildScaling     = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_WILD_SCALING);
     cs->tx_Challenges_NoEVs           = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_NO_EVS);
     cs->tx_Challenges_TrainerScalingIVs = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_SCALING_IVS);
     cs->tx_Challenges_TrainerScalingEVs = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_SCALING_EVS);
@@ -2231,6 +2264,8 @@ void CB2_InitChallengeMenu(void)
             *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_EXP_MULTIPLIER) = cs->tx_Challenges_ExpMultiplier;
             *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_ITEM_PLAYER)    = cs->tx_Challenges_NoItemPlayer;
             *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_ITEM_TRAINER)   = cs->tx_Challenges_NoItemTrainer;
+            *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_ITEM_LIMIT)     = cs->tx_Challenges_ItemLimit;
+            *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_WILD_SCALING)   = cs->tx_Challenges_WildScaling;
             *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_NO_EVS)         = cs->tx_Challenges_NoEVs;
             *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_SCALING_IVS)    = cs->tx_Challenges_TrainerScalingIVs;
             *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_SCALING_EVS)    = cs->tx_Challenges_TrainerScalingEVs;

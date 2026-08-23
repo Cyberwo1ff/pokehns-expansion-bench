@@ -6244,7 +6244,10 @@ static void Cmd_getmoneyreward(void)
         {
             u32 depositAmount = money / 4;
             if (depositAmount > 0)
+            {
+                RemoveMoney(&gSaveBlock1Ptr->money, depositAmount);
                 Mom_AutoDepositFromBattle(depositAmount);
+            }
         }
 #endif
     }
@@ -11990,8 +11993,10 @@ void ApplyExperienceMultipliers(s32 *expAmount, u8 expGetterMonId, u8 faintedBat
     }
 
     u8 expMult = gSaveBlock3Ptr->challengeSettings.tx_Challenges_ExpMultiplier;
-    if (expMult == 3)
+    if (expMult == 4)
         *expAmount = 0;
+    else if (expMult == 3)
+        *expAmount = (*expAmount * 3) / 5;
     else if (expMult == 2)
         *expAmount = *expAmount * 2;
     else if (expMult == 1)

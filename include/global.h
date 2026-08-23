@@ -298,11 +298,13 @@ struct ChallengeSettings
     u8 tx_Challenges_OneTypeChallenge:5;
     u8 tx_Challenges_NoItemPlayer:1;
     u8 tx_Challenges_NoItemTrainer:1;
+    u8 tx_Challenges_ItemLimit:1;
+    u8 tx_Challenges_WildScaling:1;
     u8 tx_Challenges_PkmnCenter:2;
     u8 tx_Challenges_LessEscapes:1;
     u8 tx_Challenges_BaseStatEqualizer:2;
     u8 tx_Challenges_LevelCap:2;
-    u8 tx_Challenges_ExpMultiplier:2;
+    u8 tx_Challenges_ExpMultiplier:3;
     u8 tx_Challenges_Mirror:1;
     u8 tx_Challenges_Mirror_Thief:1;
     u8 tx_Challenges_NoEVs:1;

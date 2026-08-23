@@ -174,6 +174,7 @@ EWRAM_DATA u16 gChosenMove = 0;
 EWRAM_DATA u16 gCalledMove = 0;
 EWRAM_DATA s32 gBideDmg[MAX_BATTLERS_COUNT] = {0};
 EWRAM_DATA u16 gLastUsedItem = 0;
+EWRAM_DATA u8 gItemLimit = 0;
 EWRAM_DATA enum Ability gLastUsedAbility = 0;
 EWRAM_DATA enum BattlerId gBattlerAttacker = 0;
 EWRAM_DATA enum BattlerId gBattlerTarget = 0;
@@ -4464,6 +4465,23 @@ static void HandleTurnActionSelectionState(void)
                         gBattleStruct->stateIdAfterSelScript[battler] = STATE_BEFORE_ACTION_CHOSEN;
                         return;
                     }
+                    else if (gSaveBlock3Ptr->challengeSettings.tx_Challenges_ItemLimit
+                            && gItemLimit >= 4
+                            && ShouldBattleRestrictionsApply(battler)
+                            // Exempt all wild battles (solo or double) -- only trainer battles are subject to the item limit.
+                            && (gBattleTypeFlags & BATTLE_TYPE_TRAINER)
+                            && !(gBattleTypeFlags & (BATTLE_TYPE_LINK
+                                                    | BATTLE_TYPE_FRONTIER_NO_PYRAMID
+                                                    | BATTLE_TYPE_EREADER_TRAINER
+                                                    | BATTLE_TYPE_RECORDED_LINK)))
+                    {
+                        RecordedBattle_ClearBattlerAction(battler, 1);
+                        gSelectionBattleScripts[battler] = BattleScript_ActionSelectionFourItemsUsed;
+                        gBattleCommunication[battler] = STATE_SELECTION_SCRIPT;
+                        gBattleStruct->battlerState[battler].selectionScriptFinished = FALSE;
+                        gBattleStruct->stateIdAfterSelScript[battler] = STATE_BEFORE_ACTION_CHOSEN;
+                        return;
+                    }
                     else
                     {
                         BtlController_EmitChooseItem(battler, B_COMM_TO_CONTROLLER, gBattleStruct->battlerPartyOrders[battler]);
@@ -4683,6 +4701,8 @@ static void HandleTurnActionSelectionState(void)
                         gLastUsedItem = (gBattleResources->bufferB[battler][1] | (gBattleResources->bufferB[battler][2] << 8));
                         if (GetItemPocket(gLastUsedItem) == POCKET_POKE_BALLS)
                             gBattleStruct->throwingPokeBall = TRUE;
+                        else if (ShouldBattleRestrictionsApply(battler))
+                            gItemLimit++;
                         gBattleCommunication[battler]++;
                     }
                     break;
@@ -5733,6 +5753,7 @@ static void HandleEndTurn_MonFled(void)
 
 static void HandleEndTurn_FinishBattle(void)
 {
+    gItemLimit = 0;
     if (gCurrentActionFuncId == B_ACTION_TRY_FINISH || gCurrentActionFuncId == B_ACTION_FINISHED)
     {
         // Both of these loops are keyed by the party index each mon had at the START of the
