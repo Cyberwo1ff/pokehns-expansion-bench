@@ -120,6 +120,7 @@ enum {
     ITEM_DIFFICULTY_SCALING_EVS,
     ITEM_DIFFICULTY_LESS_ESCAPES,
     ITEM_DIFFICULTY_ESCAPE_ROPE_DIG,
+    ITEM_DIFFICULTY_MOMS_SAVINGS,
     ITEM_DIFFICULTY_NEXT,
     ITEM_DIFFICULTY_COUNT,
 };
@@ -222,6 +223,7 @@ static const u8 sMidGameLockPolicy[TAB_COUNT * MAX_ITEMS_PER_TAB] = {
     [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_SCALING_EVS]    = LOCK_ONEWAY_DOWN,
     [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_LESS_ESCAPES]   = LOCK_ONEWAY_DOWN,
     [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_ESCAPE_ROPE_DIG]= LOCK_ONEWAY_DOWN,
+    [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_MOMS_SAVINGS]  = LOCK_ONEWAY_DOWN,
     // TAB_CHALLENGES
     [TAB_CHALLENGES * MAX_ITEMS_PER_TAB + ITEM_CHALLENGES_POKECENTER]    = LOCK_ONEWAY_DOWN,
     [TAB_CHALLENGES * MAX_ITEMS_PER_TAB + ITEM_CHALLENGES_EXPENSIVE]     = LOCK_ONEWAY_DOWN,
@@ -345,6 +347,11 @@ static const u8 *const sChoices_OffOn[] = {
 static const u8 *const sChoices_OffScale[] = {
     COMPOUND_STRING("OFF"),
     COMPOUND_STRING("SCALE"),
+};
+
+static const u8 *const sChoices_MomsSavingsMode[] = {
+    COMPOUND_STRING("HnS"),
+    COMPOUND_STRING("GSC"),
 };
 
 static const u8 *const sChoices_OnOff[] = {
@@ -1035,6 +1042,10 @@ static const u8 *const sDesc_EscapeRopeDig[] = {
     COMPOUND_STRING("ESCAPE ROPE and DIG can be used to\nexit dungeons."),
     COMPOUND_STRING("ESCAPE ROPE and DIG can't be used\nto exit dungeons."),
 };
+static const u8 *const sDesc_MomsSavings[] = {
+    COMPOUND_STRING("HnS: Mom saves 25 percent on top\nof your battle winnings."),
+    COMPOUND_STRING("GSC: Mom saves 25 percent of your\nbattle winnings."),
+};
 static const u8 *const sDesc_DifficultyNext[] = {
     COMPOUND_STRING("Continue to challenge options."),
 };
@@ -1117,6 +1128,12 @@ static const struct ChallengeMenuItem sTabItems_Difficulty[] = {
         .descriptions = sDesc_EscapeRopeDig,
         .numChoices   = 2,
         .choiceNames  = sChoices_YesNo,
+    },
+    [ITEM_DIFFICULTY_MOMS_SAVINGS] = {
+        .name         = COMPOUND_STRING("MOM'S SAVINGS"),
+        .descriptions = sDesc_MomsSavings,
+        .numChoices   = 2,
+        .choiceNames  = sChoices_MomsSavingsMode,
     },
     [ITEM_DIFFICULTY_NEXT] = {
         .name         = COMPOUND_STRING("NEXT"),
@@ -2097,6 +2114,7 @@ static void Task_ConfirmSaveYes(u8 taskId)
     cs->tx_Challenges_MaxPartyIVs     = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_MAX_PARTY_IVS);
     cs->tx_Challenges_LessEscapes     = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_LESS_ESCAPES);
     cs->tx_Difficulty_EscapeRopeDig   = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_ESCAPE_ROPE_DIG);
+    cs->tx_Challenges_MomsSavings     = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_MOMS_SAVINGS);
 
     // Challenges tab
     cs->tx_Challenges_PkmnCenter      = *GetSelectionPtr(TAB_CHALLENGES, ITEM_CHALLENGES_POKECENTER);
@@ -2305,6 +2323,7 @@ void CB2_InitChallengeMenu(void)
             *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_MAX_PARTY_IVS)  = cs->tx_Challenges_MaxPartyIVs;
             *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_LESS_ESCAPES)   = cs->tx_Challenges_LessEscapes;
             *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_ESCAPE_ROPE_DIG)= cs->tx_Difficulty_EscapeRopeDig;
+            *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_MOMS_SAVINGS)   = cs->tx_Challenges_MomsSavings;
 
             // Challenges tab
             *GetSelectionPtr(TAB_CHALLENGES, ITEM_CHALLENGES_POKECENTER)    = cs->tx_Challenges_PkmnCenter;

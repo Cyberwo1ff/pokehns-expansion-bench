@@ -314,6 +314,7 @@ struct ChallengeSettings
     u8 tx_Challenges_TrainerScalingIVs:2;
     u8 tx_Challenges_TrainerScalingEVs:2;
     u8 tx_Challenges_MaxPartyIVs:2;
+    u8 tx_Challenges_MomsSavings:1;
     // Nuzlocke
     u8 tx_Nuzlocke_SpeciesClause:1;
     u8 tx_Nuzlocke_ShinyClause:1;
