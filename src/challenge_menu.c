@@ -176,6 +176,7 @@ static EWRAM_DATA bool8 sIsInitialSetup = FALSE;
 enum {
     LOCK_FREE,
     LOCK_ONEWAY_DOWN,
+    LOCK_ONEWAY_UP,
     LOCK_FULL,
 };
 
@@ -208,7 +209,7 @@ static const u8 sMidGameLockPolicy[TAB_COUNT * MAX_ITEMS_PER_TAB] = {
     // TAB_DIFFICULTY
     [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_PARTY_LIMIT]    = LOCK_ONEWAY_DOWN,
     [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_LEVEL_CAP]      = LOCK_ONEWAY_DOWN,
-    [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_EXP_MULTIPLIER] = LOCK_ONEWAY_DOWN,
+    [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_EXP_MULTIPLIER] = LOCK_FREE,
     [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_ITEM_PLAYER]    = LOCK_ONEWAY_DOWN,
     [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_ITEM_TRAINER]   = LOCK_ONEWAY_DOWN,
     [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_ITEM_LIMIT]     = LOCK_ONEWAY_DOWN,
@@ -586,8 +587,8 @@ static const u8 *const sChoices_ExpMult[] = {
     COMPOUND_STRING("x1.0"),
     COMPOUND_STRING("x1.5"),
     COMPOUND_STRING("x2.0"),
-    COMPOUND_STRING("x0.6"),
     COMPOUND_STRING("x0.0"),
+    COMPOUND_STRING("x0.6"),
 };
 
 static const u8 *const sChoices_TrainerIVs[] = {
@@ -978,8 +979,8 @@ static const u8 *const sDesc_ExpMult[] = {
     COMPOUND_STRING("{PKMN} gain normal EXP. Points.\nStacks with HARD MODE EXP."),
     COMPOUND_STRING("{PKMN} gain 50 percent more EXP.\nPoints! Stacks with HARD MODE EXP."),
     COMPOUND_STRING("{PKMN} gain double EXP. Points!\nStacks with HARD MODE EXP."),
-    COMPOUND_STRING("{PKMN} gain 40 percent less EXP.\nPoints. Stacks with HARD MODE EXP."),
     COMPOUND_STRING("{PKMN} gain ZERO EXP. Points!!!\nApplies to HARD MODE EXP. as well."),
+    COMPOUND_STRING("{PKMN} gain 40 percent less EXP.\nPoints. Stacks with HARD MODE EXP."),
 };
 static const u8 *const sDesc_ItemPlayer[] = {
     COMPOUND_STRING("The player can use battle items."),
@@ -1829,6 +1830,13 @@ static void ProcessLeftRight(void)
     }
 
     if (*sel != prev && GetLockPolicy(sMenu->currentTab, itemIndex) == LOCK_ONEWAY_DOWN && *sel > prev)
+    {
+        *sel = prev;
+        PlaySE(SE_FAILURE);
+        return;
+    }
+
+    if (*sel != prev && GetLockPolicy(sMenu->currentTab, itemIndex) == LOCK_ONEWAY_UP && *sel < prev)
     {
         *sel = prev;
         PlaySE(SE_FAILURE);
