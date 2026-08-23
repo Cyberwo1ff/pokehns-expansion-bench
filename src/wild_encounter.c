@@ -386,22 +386,22 @@ static u8 ChooseWildMonLevel(const struct WildPokemon *wildPokemon, u8 wildMonIn
             if (ability == ABILITY_HUSTLE || ability == ABILITY_VITAL_SPIRIT || ability == ABILITY_PRESSURE)
             {
                 if (Random() % 2 == 0)
-                    return max + GetWildScalingLevelBonus();
+                    return min(max + GetWildScalingLevelBonus(), MAX_LEVEL);
 
                 if (rand != 0)
                     rand--;
             }
         }
-        return min + rand + GetWildScalingLevelBonus();
+        return min(min + rand + GetWildScalingLevelBonus(), MAX_LEVEL);
     }
     else
     {
         // Looks for the max level of all slots that share the same species as the selected slot.
         max = GetMaxLevelOfSpeciesInWildTable(wildPokemon, wildPokemon[wildMonIndex].species, area);
         if (max > 0)
-            return max + 1;
+            return min(max + 1, MAX_LEVEL);
         else // Failsafe
-            return wildPokemon[wildMonIndex].maxLevel + 1;
+            return min(wildPokemon[wildMonIndex].maxLevel + 1, MAX_LEVEL);
     }
 }
 
