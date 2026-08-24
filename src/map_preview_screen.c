@@ -768,6 +768,15 @@ u16 MapPreview_GetDuration(mapsec_u8_t mapsec)
     }
 }
 
+bool8 MapPreview_ForestFadeIsActive(void)
+{
+#if IS_HNS
+    return MapHasPreviewScreen_HandleQLState2(gMapHeader.regionMapSectionId, MPS_TYPE_FOREST);
+#else
+    return FALSE;
+#endif
+}
+
 void MapPreview_SetFlag(u16 flagId)
 {
     if (!FlagGet(flagId))
