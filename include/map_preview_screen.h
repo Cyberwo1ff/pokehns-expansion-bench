@@ -31,6 +31,7 @@ enum MapPreviewScreenId
     MPS_SCUFIB_CHAMBER,
     MPS_RIXY_CHAMBER,
     MPS_VIAPOIS_CHAMBER,
+#if IS_HNS
     //Johto
     MPS_HGSS_BURNED_TOWER,
     MPS_HGSS_DARK_CAVE,
@@ -47,6 +48,7 @@ enum MapPreviewScreenId
     MPS_HGSS_TOHJO_FALLS,
     MPS_HGSS_UNION_CAVE,
     MPS_HGSS_WHIRL_ISLANDS,
+#endif
     MPS_COUNT
 };
 
