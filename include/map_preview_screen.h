@@ -37,6 +37,11 @@ enum MapPreviewScreenId
 #define MPS_TYPE_CAVE   0
 #define MPS_TYPE_FOREST 1
 #define MPS_TYPE_ANY    2
+#define MPS_TYPE_BASIC  3
+
+#define MPS_BASIC_FADE_SPEED    1   // Speed the map preview fades out at when MPS_TYPE_BASIC is used.
+                                    // Numbers less than 1 give a shorter fade (negative allowed);
+                                    // numbers greater than 1 give a longer fade.
 
 struct MapPreviewScreen
 {
