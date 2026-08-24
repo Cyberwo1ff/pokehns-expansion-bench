@@ -81,5 +81,6 @@ void MapPreview_LoadGfx(mapsec_u8_t mapsec);
 bool32 MapPreview_IsGfxLoadFinished(void);
 void MapPreview_Unload(s32 windowId);
 void MapPreview_StartForestTransition(mapsec_u8_t mapsec);
+bool8 MapPreview_ForestFadeIsActive(void);
 
 #endif //GUARD_MAP_PREVIEW_SCREEN_H

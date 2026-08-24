@@ -19,6 +19,7 @@
 #include "trig.h"
 #include "gpu_regs.h"
 #include "field_camera.h"
+#include "map_preview_screen.h"
 #include "overworld.h"
 
 #define DROUGHT_COLOR_INDEX(color) ((((color) >> 1) & 0xF) | (((color) >> 2) & 0xF0) | (((color) >> 3) & 0xF00))
@@ -315,7 +316,8 @@ static void Task_WeatherMain(u8 taskId)
 
 static void None_Init(void)
 {
-    Weather_SetBlendCoeffs(8, BASE_SHADOW_INTENSITY); // Indoor shadows
+    if (!MapPreview_ForestFadeIsActive())
+        Weather_SetBlendCoeffs(8, BASE_SHADOW_INTENSITY); // Indoor shadows
     gWeatherPtr->noShadows = FALSE;
     gWeatherPtr->targetColorMapIndex = 0;
     gWeatherPtr->colorMapStepDelay = 0;
