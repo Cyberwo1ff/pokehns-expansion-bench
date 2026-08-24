@@ -383,7 +383,10 @@ void MapPreview_LoadGfx(mapsec_u8_t mapsec)
     if (idx != MPS_COUNT)
     {
        ResetTempTileDataBuffers();
-       LoadPalette(sMapPreviewScreenData[idx].palptr, BG_PLTT_ID(13), 3 * PLTT_SIZE_4BPP);
+       if (sMapPreviewScreenData[idx].type == MPS_TYPE_FOREST)
+           LoadPalette(sMapPreviewScreenData[idx].palptr, BG_PLTT_ID(13), 3 * PLTT_SIZE_4BPP);
+       else
+           LoadPalette(sMapPreviewScreenData[idx].palptr, BG_PLTT_ID(0), 16 * PLTT_SIZE_4BPP);
        DecompressAndCopyTileDataToVram(0, sMapPreviewScreenData[idx].tilesptr, 0, 0, 0);
        if (GetBgTilemapBuffer(0) == NULL)
        {
