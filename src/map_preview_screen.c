@@ -574,6 +574,14 @@ void MapPreview_LoadGfx(mapsec_u8_t mapsec)
     }
 }
 
+void MapPreview_UnloadBgOnly(void)
+{
+    if (sAllocedBg0TilemapBuffer)
+    {
+        Free(GetBgTilemapBuffer(0));
+    }
+}
+
 void MapPreview_Unload(s32 windowId)
 {
     RemoveWindow(windowId);
