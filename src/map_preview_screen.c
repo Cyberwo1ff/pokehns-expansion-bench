@@ -15,6 +15,8 @@
 
 static EWRAM_DATA bool8 sHasVisitedMapBefore = FALSE;
 
+#if IS_FRLG || IS_HNS
+
 static EWRAM_DATA bool8 sAllocedBg0TilemapBuffer = FALSE;
 
 static void Task_RunMapPreviewScreenForest(u8 taskId);
@@ -83,6 +85,7 @@ static const u8 sAlteringCaveMapPreviewPalette[] = INCBIN_U8("graphics/map_previ
 static const u8 sAlteringCaveMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/altering_cave/tiles.4bpp.smol");
 static const u8 sAlteringCaveMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/altering_cave/tilemap.bin.smolTM");
 
+#if IS_HNS
 // Johto
 static const u8 sBurnedTowerMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/burned_tower/tiles.gbapal");
 static const u8 sBurnedTowerMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/burned_tower/tiles.4bpp.smol");
@@ -129,6 +132,7 @@ static const u8 sUnionCaveMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/
 static const u8 sWhirlIslandsMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/whirl_islands/tiles.gbapal");
 static const u8 sWhirlIslandsMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/whirl_islands/tiles.4bpp.smol");
 static const u8 sWhirlIslandsMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/whirl_islands/tilemap.bin.smolTM");
+#endif // IS_HNS
 
 static const struct MapPreviewScreen sMapPreviewScreenData[MPS_COUNT] = {
     [MPS_VIRIDIAN_FOREST] = {
@@ -355,6 +359,7 @@ static const struct MapPreviewScreen sMapPreviewScreenData[MPS_COUNT] = {
         .tilemapptr = sMoneanChamberMapPreviewTilemap,
         .palptr = sMoneanChamberMapPreviewPalette
     },
+#if IS_HNS
     //Johto
     [MPS_HGSS_BURNED_TOWER] = {
         .mapsec = MAPSEC_BURNED_TOWER,
@@ -476,6 +481,7 @@ static const struct MapPreviewScreen sMapPreviewScreenData[MPS_COUNT] = {
         .tilemapptr = sWhirlIslandsMapPreviewTilemap,
         .palptr = sWhirlIslandsMapPreviewPalette
     }
+#endif // IS_HNS
 };
 
 static const struct WindowTemplate sMapNameWindow = {
@@ -767,6 +773,8 @@ u16 MapPreview_GetDuration(mapsec_u8_t mapsec)
         }
     }
 }
+
+#endif // IS_FRLG || IS_HNS
 
 bool8 MapPreview_ForestFadeIsActive(void)
 {
