@@ -16,7 +16,6 @@
 #include "sound.h"
 #include "sprite.h"
 #include "task.h"
-#include "window.h"
 #include "constants/rgb.h"
 #include "constants/songs.h"
 
@@ -403,10 +402,11 @@ static void Task_MapPreviewScreen_0(u8 taskId)
         data[0]++;
         break;
     case 1:
+        // No name window here: CAVE/BASIC previews load the full 16-slot
+        // palette (unlike FOREST's 3-slot load), which overwrites the
+        // slot the name window's text colors live in.
         if (!MapPreview_IsGfxLoadFinished())
         {
-            data[4] = MapPreview_CreateMapNameWindow(data[3]);
-            CopyWindowToVram(data[4], COPYWIN_FULL);
             data[0]++;
         }
         break;
@@ -448,7 +448,7 @@ static void Task_MapPreviewScreen_0(u8 taskId)
             {
                 data[i] = 0;
             }
-            MapPreview_Unload(data[4]);
+            MapPreview_UnloadBgOnly();
             if (MapHasPreviewScreen_HandleQLState2(gMapHeader.regionMapSectionId, MPS_TYPE_BASIC) == TRUE)
             {
                 SetMainCallback2(gMain.savedCallback);
