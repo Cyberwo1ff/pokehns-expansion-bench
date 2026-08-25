@@ -86,6 +86,30 @@ static const u8 sAlteringCaveMapPreviewTiles[] = INCBIN_U8("graphics/map_preview
 static const u8 sAlteringCaveMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/frlg/altering_cave/tilemap.bin.smolTM");
 
 #if IS_HNS
+// Kanto locations with an HGSS reskin - used instead of the FRLG art above
+// when playing HNS; the FRLG art stays as the FRLG/LeafGreen fallback.
+static const u8 sCeruleanCaveHgssMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/cerulean_cave/tiles.gbapal");
+static const u8 sCeruleanCaveHgssMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/cerulean_cave/tiles.4bpp.smol");
+static const u8 sCeruleanCaveHgssMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/cerulean_cave/tilemap.bin.smolTM");
+static const u8 sDiglettsCaveHgssMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/digglet_cave/tiles.gbapal");
+static const u8 sDiglettsCaveHgssMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/digglet_cave/tiles.4bpp.smol");
+static const u8 sDiglettsCaveHgssMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/digglet_cave/tilemap.bin.smolTM");
+static const u8 sMtMoonHgssMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/mt_moon/tiles.gbapal");
+static const u8 sMtMoonHgssMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/mt_moon/tiles.4bpp.smol");
+static const u8 sMtMoonHgssMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/mt_moon/tilemap.bin.smolTM");
+static const u8 sRockTunnelHgssMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/rock_tunnel/tiles.gbapal");
+static const u8 sRockTunnelHgssMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/rock_tunnel/tiles.4bpp.smol");
+static const u8 sRockTunnelHgssMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/rock_tunnel/tilemap.bin.smolTM");
+static const u8 sSeafoamIslandsHgssMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/seafoam_islands/tiles.gbapal");
+static const u8 sSeafoamIslandsHgssMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/seafoam_islands/tiles.4bpp.smol");
+static const u8 sSeafoamIslandsHgssMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/seafoam_islands/tilemap.bin.smolTM");
+static const u8 sVictoryRoadHgssMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/victory_road/tiles.gbapal");
+static const u8 sVictoryRoadHgssMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/victory_road/tiles.4bpp.smol");
+static const u8 sVictoryRoadHgssMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/victory_road/tilemap.bin.smolTM");
+static const u8 sViridianForestHgssMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/viridian_forest/tiles.gbapal");
+static const u8 sViridianForestHgssMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/viridian_forest/tiles.4bpp.smol");
+static const u8 sViridianForestHgssMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/viridian_forest/tilemap.bin.smolTM");
+
 // Johto
 static const u8 sBurnedTowerMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/burned_tower/tiles.gbapal");
 static const u8 sBurnedTowerMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/burned_tower/tiles.4bpp.smol");
@@ -137,35 +161,60 @@ static const u8 sWhirlIslandsMapPreviewTilemap[] = INCBIN_U8("graphics/map_previ
 static const struct MapPreviewScreen sMapPreviewScreenData[MPS_COUNT] = {
     [MPS_VIRIDIAN_FOREST] = {
         .mapsec = MAPSEC_VIRIDIAN_FOREST,
-        .type = MPS_TYPE_FOREST,
         .flagId = FLAG_WORLD_MAP_VIRIDIAN_FOREST,
+#if IS_HNS
+        .type = MPS_TYPE_CAVE,
+        .tilesptr = sViridianForestHgssMapPreviewTiles,
+        .tilemapptr = sViridianForestHgssMapPreviewTilemap,
+        .palptr = sViridianForestHgssMapPreviewPalette
+#else
+        .type = MPS_TYPE_FOREST,
         .tilesptr = sViridianForestMapPreviewTiles,
         .tilemapptr = sViridianForestMapPreviewTilemap,
         .palptr = sViridianForestMapPreviewPalette
+#endif
     },
     [MPS_MT_MOON] = {
         .mapsec = MAPSEC_MT_MOON,
         .type = MPS_TYPE_CAVE,
         .flagId = FLAG_WORLD_MAP_MT_MOON_1F,
+#if IS_HNS
+        .tilesptr = sMtMoonHgssMapPreviewTiles,
+        .tilemapptr = sMtMoonHgssMapPreviewTilemap,
+        .palptr = sMtMoonHgssMapPreviewPalette
+#else
         .tilesptr = sMtMoonMapPreviewTiles,
         .tilemapptr = sMtMoonMapPreviewTilemap,
         .palptr = sMtMoonMapPreviewPalette
+#endif
     },
     [MPS_DIGLETTS_CAVE] = {
         .mapsec = MAPSEC_DIGLETTS_CAVE,
         .type = MPS_TYPE_CAVE,
         .flagId = FLAG_WORLD_MAP_DIGLETTS_CAVE_B1F,
+#if IS_HNS
+        .tilesptr = sDiglettsCaveHgssMapPreviewTiles,
+        .tilemapptr = sDiglettsCaveHgssMapPreviewTilemap,
+        .palptr = sDiglettsCaveHgssMapPreviewPalette
+#else
         .tilesptr = sDiglettsCaveMapPreviewTiles,
         .tilemapptr = sDiglettsCaveMapPreviewTilemap,
         .palptr = sDiglettsCaveMapPreviewPalette
+#endif
     },
     [MPS_ROCK_TUNNEL] = {
         .mapsec = MAPSEC_ROCK_TUNNEL,
         .type = MPS_TYPE_CAVE,
         .flagId = FLAG_WORLD_MAP_ROCK_TUNNEL_1F,
+#if IS_HNS
+        .tilesptr = sRockTunnelHgssMapPreviewTiles,
+        .tilemapptr = sRockTunnelHgssMapPreviewTilemap,
+        .palptr = sRockTunnelHgssMapPreviewPalette
+#else
         .tilesptr = sRockTunnelMapPreviewTiles,
         .tilemapptr = sRockTunnelMapPreviewTilemap,
         .palptr = sRockTunnelMapPreviewPalette
+#endif
     },
     [MPS_POKEMON_TOWER] = {
         .mapsec = MAPSEC_POKEMON_TOWER,
@@ -187,9 +236,15 @@ static const struct MapPreviewScreen sMapPreviewScreenData[MPS_COUNT] = {
         .mapsec = MAPSEC_SEAFOAM_ISLANDS,
         .type = MPS_TYPE_CAVE,
         .flagId = FLAG_WORLD_MAP_SEAFOAM_ISLANDS_1F,
+#if IS_HNS
+        .tilesptr = sSeafoamIslandsHgssMapPreviewTiles,
+        .tilemapptr = sSeafoamIslandsHgssMapPreviewTilemap,
+        .palptr = sSeafoamIslandsHgssMapPreviewPalette
+#else
         .tilesptr = sSeafoamIslandsMapPreviewTiles,
         .tilemapptr = sSeafoamIslandsMapPreviewTilemap,
         .palptr = sSeafoamIslandsMapPreviewPalette
+#endif
     },
     [MPS_POKEMON_MANSION] = {
         .mapsec = MAPSEC_POKEMON_MANSION,
@@ -219,17 +274,29 @@ static const struct MapPreviewScreen sMapPreviewScreenData[MPS_COUNT] = {
         .mapsec = MAPSEC_KANTO_VICTORY_ROAD,
         .type = MPS_TYPE_CAVE,
         .flagId = FLAG_WORLD_MAP_VICTORY_ROAD_1F,
+#if IS_HNS
+        .tilesptr = sVictoryRoadHgssMapPreviewTiles,
+        .tilemapptr = sVictoryRoadHgssMapPreviewTilemap,
+        .palptr = sVictoryRoadHgssMapPreviewPalette
+#else
         .tilesptr = sVictoryRoadMapPreviewTiles,
         .tilemapptr = sVictoryRoadMapPreviewTilemap,
         .palptr = sVictoryRoadMapPreviewPalette
+#endif
     },
     [MPS_CERULEAN_CAVE] = {
         .mapsec = MAPSEC_CERULEAN_CAVE,
         .type = MPS_TYPE_CAVE,
         .flagId = FLAG_WORLD_MAP_CERULEAN_CAVE_1F,
+#if IS_HNS
+        .tilesptr = sCeruleanCaveHgssMapPreviewTiles,
+        .tilemapptr = sCeruleanCaveHgssMapPreviewTilemap,
+        .palptr = sCeruleanCaveHgssMapPreviewPalette
+#else
         .tilesptr = sCeruleanCaveMapPreviewTiles,
         .tilemapptr = sCeruleanCaveMapPreviewTilemap,
         .palptr = sCeruleanCaveMapPreviewPalette
+#endif
     },
     [MPS_POWER_PLANT] = {
         .mapsec = MAPSEC_POWER_PLANT,
