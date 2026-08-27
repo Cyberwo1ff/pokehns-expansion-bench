@@ -9,6 +9,7 @@
 #include "overworld.h"
 #include "palette.h"
 #include "region_map.h"
+#include "rtc.h"
 #include "script.h"
 #include "string_util.h"
 #include "constants/region_map_sections.h"
@@ -94,9 +95,12 @@ static const u8 sCeruleanCaveHgssMapPreviewTilemap[] = INCBIN_U8("graphics/map_p
 static const u8 sDiglettsCaveHgssMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/digglet_cave/tiles.gbapal");
 static const u8 sDiglettsCaveHgssMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/digglet_cave/tiles.4bpp.smol");
 static const u8 sDiglettsCaveHgssMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/digglet_cave/tilemap.bin.smolTM");
-static const u8 sMtMoonHgssMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/mt_moon/tiles.gbapal");
-static const u8 sMtMoonHgssMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/mt_moon/tiles.4bpp.smol");
-static const u8 sMtMoonHgssMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/mt_moon/tilemap.bin.smolTM");
+static const u8 sMtMoonHgssMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/mt_moon/day/tiles.gbapal");
+static const u8 sMtMoonHgssMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/mt_moon/day/tiles.4bpp.smol");
+static const u8 sMtMoonHgssMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/mt_moon/day/tilemap.bin.smolTM");
+static const u8 sMtMoonHgssNightMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/mt_moon/night/tiles.gbapal");
+static const u8 sMtMoonHgssNightMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/mt_moon/night/tiles.4bpp.smol");
+static const u8 sMtMoonHgssNightMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/mt_moon/night/tilemap.bin.smolTM");
 static const u8 sRockTunnelHgssMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/rock_tunnel/tiles.gbapal");
 static const u8 sRockTunnelHgssMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/rock_tunnel/tiles.4bpp.smol");
 static const u8 sRockTunnelHgssMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/rock_tunnel/tilemap.bin.smolTM");
@@ -106,9 +110,12 @@ static const u8 sSeafoamIslandsHgssMapPreviewTilemap[] = INCBIN_U8("graphics/map
 static const u8 sVictoryRoadHgssMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/victory_road/tiles.gbapal");
 static const u8 sVictoryRoadHgssMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/victory_road/tiles.4bpp.smol");
 static const u8 sVictoryRoadHgssMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/victory_road/tilemap.bin.smolTM");
-static const u8 sViridianForestHgssMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/viridian_forest/tiles.gbapal");
-static const u8 sViridianForestHgssMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/viridian_forest/tiles.4bpp.smol");
-static const u8 sViridianForestHgssMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/viridian_forest/tilemap.bin.smolTM");
+static const u8 sViridianForestHgssMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/viridian_forest/day/tiles.gbapal");
+static const u8 sViridianForestHgssMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/viridian_forest/day/tiles.4bpp.smol");
+static const u8 sViridianForestHgssMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/viridian_forest/day/tilemap.bin.smolTM");
+static const u8 sViridianForestHgssNightMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/viridian_forest/night/tiles.gbapal");
+static const u8 sViridianForestHgssNightMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/viridian_forest/night/tiles.4bpp.smol");
+static const u8 sViridianForestHgssNightMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/viridian_forest/night/tilemap.bin.smolTM");
 
 // Johto
 static const u8 sBurnedTowerMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/burned_tower/tiles.gbapal");
@@ -126,18 +133,27 @@ static const u8 sDragonDenMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/
 static const u8 sIcePathMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/ice_path/tiles.gbapal");
 static const u8 sIcePathMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/ice_path/tiles.4bpp.smol");
 static const u8 sIcePathMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/ice_path/tilemap.bin.smolTM");
-static const u8 sIlexForestMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/ilex_forest/tiles.gbapal");
-static const u8 sIlexForestMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/ilex_forest/tiles.4bpp.smol");
-static const u8 sIlexForestMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/ilex_forest/tilemap.bin.smolTM");
-static const u8 sMtMortarMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/mt_mortar/tiles.gbapal");
-static const u8 sMtMortarMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/mt_mortar/tiles.4bpp.smol");
-static const u8 sMtMortarMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/mt_mortar/tilemap.bin.smolTM");
+static const u8 sIlexForestMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/ilex_forest/day/tiles.gbapal");
+static const u8 sIlexForestMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/ilex_forest/day/tiles.4bpp.smol");
+static const u8 sIlexForestMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/ilex_forest/day/tilemap.bin.smolTM");
+static const u8 sIlexForestNightMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/ilex_forest/night/tiles.gbapal");
+static const u8 sIlexForestNightMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/ilex_forest/night/tiles.4bpp.smol");
+static const u8 sIlexForestNightMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/ilex_forest/night/tilemap.bin.smolTM");
+static const u8 sMtMortarMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/mt_mortar/day/tiles.gbapal");
+static const u8 sMtMortarMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/mt_mortar/day/tiles.4bpp.smol");
+static const u8 sMtMortarMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/mt_mortar/day/tilemap.bin.smolTM");
+static const u8 sMtMortarNightMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/mt_mortar/night/tiles.gbapal");
+static const u8 sMtMortarNightMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/mt_mortar/night/tiles.4bpp.smol");
+static const u8 sMtMortarNightMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/mt_mortar/night/tilemap.bin.smolTM");
 static const u8 sMtSilverMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/mt_silver/tiles.gbapal");
 static const u8 sMtSilverMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/mt_silver/tiles.4bpp.smol");
 static const u8 sMtSilverMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/mt_silver/tilemap.bin.smolTM");
-static const u8 sNationalParkMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/national_park/tiles.gbapal");
-static const u8 sNationalParkMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/national_park/tiles.4bpp.smol");
-static const u8 sNationalParkMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/national_park/tilemap.bin.smolTM");
+static const u8 sNationalParkMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/national_park/day/tiles.gbapal");
+static const u8 sNationalParkMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/national_park/day/tiles.4bpp.smol");
+static const u8 sNationalParkMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/national_park/day/tilemap.bin.smolTM");
+static const u8 sNationalParkNightMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/national_park/night/tiles.gbapal");
+static const u8 sNationalParkNightMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/national_park/night/tiles.4bpp.smol");
+static const u8 sNationalParkNightMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/national_park/night/tilemap.bin.smolTM");
 static const u8 sRuinsOfAlphMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/ruins_of_alph/tiles.gbapal");
 static const u8 sRuinsOfAlphMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/ruins_of_alph/tiles.4bpp.smol");
 static const u8 sRuinsOfAlphMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/ruins_of_alph/tilemap.bin.smolTM");
@@ -147,9 +163,12 @@ static const u8 sSlowpokeWellMapPreviewTilemap[] = INCBIN_U8("graphics/map_previ
 static const u8 sSproutTowerMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/sprout_tower/tiles.gbapal");
 static const u8 sSproutTowerMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/sprout_tower/tiles.4bpp.smol");
 static const u8 sSproutTowerMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/sprout_tower/tilemap.bin.smolTM");
-static const u8 sTinTowerMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/tin_tower/tiles.gbapal");
-static const u8 sTinTowerMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/tin_tower/tiles.4bpp.smol");
-static const u8 sTinTowerMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/tin_tower/tilemap.bin.smolTM");
+static const u8 sTinTowerMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/tin_tower/day/tiles.gbapal");
+static const u8 sTinTowerMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/tin_tower/day/tiles.4bpp.smol");
+static const u8 sTinTowerMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/tin_tower/day/tilemap.bin.smolTM");
+static const u8 sTinTowerNightMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/tin_tower/night/tiles.gbapal");
+static const u8 sTinTowerNightMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/tin_tower/night/tiles.4bpp.smol");
+static const u8 sTinTowerNightMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/tin_tower/night/tilemap.bin.smolTM");
 static const u8 sTohjoFallsMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/tohjo_falls/tiles.gbapal");
 static const u8 sTohjoFallsMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/tohjo_falls/tiles.4bpp.smol");
 static const u8 sTohjoFallsMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/tohjo_falls/tilemap.bin.smolTM");
@@ -169,7 +188,10 @@ static const struct MapPreviewScreen sMapPreviewScreenData[MPS_COUNT] = {
         .type = MPS_TYPE_CAVE,
         .tilesptr = sViridianForestHgssMapPreviewTiles,
         .tilemapptr = sViridianForestHgssMapPreviewTilemap,
-        .palptr = sViridianForestHgssMapPreviewPalette
+        .palptr = sViridianForestHgssMapPreviewPalette,
+        .nightTilesptr = sViridianForestHgssNightMapPreviewTiles,
+        .nightTilemapptr = sViridianForestHgssNightMapPreviewTilemap,
+        .nightPalptr = sViridianForestHgssNightMapPreviewPalette
 #else
         .type = MPS_TYPE_FOREST,
         .tilesptr = sViridianForestMapPreviewTiles,
@@ -184,7 +206,10 @@ static const struct MapPreviewScreen sMapPreviewScreenData[MPS_COUNT] = {
 #if IS_HNS
         .tilesptr = sMtMoonHgssMapPreviewTiles,
         .tilemapptr = sMtMoonHgssMapPreviewTilemap,
-        .palptr = sMtMoonHgssMapPreviewPalette
+        .palptr = sMtMoonHgssMapPreviewPalette,
+        .nightTilesptr = sMtMoonHgssNightMapPreviewTiles,
+        .nightTilemapptr = sMtMoonHgssNightMapPreviewTilemap,
+        .nightPalptr = sMtMoonHgssNightMapPreviewPalette
 #else
         .tilesptr = sMtMoonMapPreviewTiles,
         .tilemapptr = sMtMoonMapPreviewTilemap,
@@ -477,7 +502,10 @@ static const struct MapPreviewScreen sMapPreviewScreenData[MPS_COUNT] = {
         .flagId = FLAG_WORLD_MAP_ILEX_FOREST,
         .tilesptr = sIlexForestMapPreviewTiles,
         .tilemapptr = sIlexForestMapPreviewTilemap,
-        .palptr = sIlexForestMapPreviewPalette
+        .palptr = sIlexForestMapPreviewPalette,
+        .nightTilesptr = sIlexForestNightMapPreviewTiles,
+        .nightTilemapptr = sIlexForestNightMapPreviewTilemap,
+        .nightPalptr = sIlexForestNightMapPreviewPalette
     },
     [MPS_HGSS_MT_MORTAR] = {
         .mapsec = MAPSEC_MT_MORTAR,
@@ -485,7 +513,10 @@ static const struct MapPreviewScreen sMapPreviewScreenData[MPS_COUNT] = {
         .flagId = FLAG_WORLD_MAP_MT_MORTAR,
         .tilesptr = sMtMortarMapPreviewTiles,
         .tilemapptr = sMtMortarMapPreviewTilemap,
-        .palptr = sMtMortarMapPreviewPalette
+        .palptr = sMtMortarMapPreviewPalette,
+        .nightTilesptr = sMtMortarNightMapPreviewTiles,
+        .nightTilemapptr = sMtMortarNightMapPreviewTilemap,
+        .nightPalptr = sMtMortarNightMapPreviewPalette
     },
     [MPS_HGSS_MT_SILVER] = {
         .mapsec = MAPSEC_MT_SILVER,
@@ -501,7 +532,10 @@ static const struct MapPreviewScreen sMapPreviewScreenData[MPS_COUNT] = {
         .flagId = FLAG_WORLD_MAP_NATIONAL_PARK,
         .tilesptr = sNationalParkMapPreviewTiles,
         .tilemapptr = sNationalParkMapPreviewTilemap,
-        .palptr = sNationalParkMapPreviewPalette
+        .palptr = sNationalParkMapPreviewPalette,
+        .nightTilesptr = sNationalParkNightMapPreviewTiles,
+        .nightTilemapptr = sNationalParkNightMapPreviewTilemap,
+        .nightPalptr = sNationalParkNightMapPreviewPalette
     },
     [MPS_HGSS_RUINS_OF_ALPH] = {
         .mapsec = MAPSEC_RUINS_OF_ALPH,
@@ -533,7 +567,10 @@ static const struct MapPreviewScreen sMapPreviewScreenData[MPS_COUNT] = {
         .flagId = FLAG_WORLD_MAP_TIN_TOWER,
         .tilesptr = sTinTowerMapPreviewTiles,
         .tilemapptr = sTinTowerMapPreviewTilemap,
-        .palptr = sTinTowerMapPreviewPalette
+        .palptr = sTinTowerMapPreviewPalette,
+        .nightTilesptr = sTinTowerNightMapPreviewTiles,
+        .nightTilemapptr = sTinTowerNightMapPreviewTilemap,
+        .nightPalptr = sTinTowerNightMapPreviewPalette
     },
     [MPS_HGSS_TOHJO_FALLS] = {
         .mapsec = MAPSEC_TOHJO_FALLS,
@@ -635,16 +672,32 @@ void MapPreview_InitBgs(void)
 void MapPreview_LoadGfx(mapsec_u8_t mapsec)
 {
     u8 idx;
+    const void *tilesptr;
+    const void *tilemapptr;
+    const void *palptr;
 
     idx = GetMapPreviewScreenIdx(mapsec);
     if (idx != MPS_COUNT)
     {
+       tilesptr = sMapPreviewScreenData[idx].tilesptr;
+       tilemapptr = sMapPreviewScreenData[idx].tilemapptr;
+       palptr = sMapPreviewScreenData[idx].palptr;
+#if IS_HNS
+       // Locations without a night variant leave these NULL, so they always
+       // fall through to the day/default assets above.
+       if (sMapPreviewScreenData[idx].nightTilesptr != NULL && GetTimeOfDay() == TIME_NIGHT)
+       {
+           tilesptr = sMapPreviewScreenData[idx].nightTilesptr;
+           tilemapptr = sMapPreviewScreenData[idx].nightTilemapptr;
+           palptr = sMapPreviewScreenData[idx].nightPalptr;
+       }
+#endif
        ResetTempTileDataBuffers();
        if (sMapPreviewScreenData[idx].type == MPS_TYPE_FOREST)
-           LoadPalette(sMapPreviewScreenData[idx].palptr, BG_PLTT_ID(13), 3 * PLTT_SIZE_4BPP);
+           LoadPalette(palptr, BG_PLTT_ID(13), 3 * PLTT_SIZE_4BPP);
        else
-           LoadPalette(sMapPreviewScreenData[idx].palptr, BG_PLTT_ID(0), 16 * PLTT_SIZE_4BPP);
-       DecompressAndCopyTileDataToVram(0, sMapPreviewScreenData[idx].tilesptr, 0, 0, 0);
+           LoadPalette(palptr, BG_PLTT_ID(0), 16 * PLTT_SIZE_4BPP);
+       DecompressAndCopyTileDataToVram(0, tilesptr, 0, 0, 0);
        if (GetBgTilemapBuffer(0) == NULL)
        {
            SetBgTilemapBuffer(0, Alloc(BG_SCREEN_SIZE));
@@ -654,7 +707,7 @@ void MapPreview_LoadGfx(mapsec_u8_t mapsec)
        {
            sAllocedBg0TilemapBuffer = FALSE;
        }
-       CopyToBgTilemapBuffer(0, sMapPreviewScreenData[idx].tilemapptr, 0, 0x000);
+       CopyToBgTilemapBuffer(0, tilemapptr, 0, 0x000);
        CopyBgTilemapBufferToVram(0);
     }
 }
