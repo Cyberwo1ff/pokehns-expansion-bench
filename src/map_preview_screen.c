@@ -185,7 +185,7 @@ static const struct MapPreviewScreen sMapPreviewScreenData[MPS_COUNT] = {
         .mapsec = MAPSEC_VIRIDIAN_FOREST,
         .flagId = FLAG_WORLD_MAP_VIRIDIAN_FOREST,
 #if IS_HNS
-        .type = MPS_TYPE_CAVE,
+        .type = MPS_TYPE_BASIC,
         .tilesptr = sViridianForestHgssMapPreviewTiles,
         .tilemapptr = sViridianForestHgssMapPreviewTilemap,
         .palptr = sViridianForestHgssMapPreviewPalette,
