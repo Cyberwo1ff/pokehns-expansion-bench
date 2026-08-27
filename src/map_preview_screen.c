@@ -117,6 +117,9 @@ static const u8 sBurnedTowerMapPreviewTilemap[] = INCBIN_U8("graphics/map_previe
 static const u8 sDarkCaveMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/dark_cave/Route_31/tiles.gbapal");
 static const u8 sDarkCaveMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/dark_cave/Route_31/tiles.4bpp.smol");
 static const u8 sDarkCaveMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/dark_cave/Route_31/tilemap.bin.smolTM");
+static const u8 sDarkCaveRoute45MapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/dark_cave/Route_45/tiles.gbapal");
+static const u8 sDarkCaveRoute45MapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/dark_cave/Route_45/tiles.4bpp.smol");
+static const u8 sDarkCaveRoute45MapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/dark_cave/Route_45/tilemap.bin.smolTM");
 static const u8 sDragonDenMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/hgss/dragon_den/tiles.gbapal");
 static const u8 sDragonDenMapPreviewTiles[] = INCBIN_U8("graphics/map_preview/hgss/dragon_den/tiles.4bpp.smol");
 static const u8 sDragonDenMapPreviewTilemap[] = INCBIN_U8("graphics/map_preview/hgss/dragon_den/tilemap.bin.smolTM");
@@ -444,6 +447,14 @@ static const struct MapPreviewScreen sMapPreviewScreenData[MPS_COUNT] = {
         .tilemapptr = sDarkCaveMapPreviewTilemap,
         .palptr = sDarkCaveMapPreviewPalette
     },
+    [MPS_HGSS_DARK_CAVE_45] = {
+        .mapsec = MAPSEC_DARK_CAVE,
+        .type = MPS_TYPE_CAVE,
+        .flagId = FLAG_WORLD_MAP_DARK_CAVE,
+        .tilesptr = sDarkCaveRoute45MapPreviewTiles,
+        .tilemapptr = sDarkCaveRoute45MapPreviewTilemap,
+        .palptr = sDarkCaveRoute45MapPreviewPalette
+    },
     [MPS_HGSS_DRAGON_DEN] = {
         .mapsec = MAPSEC_DRAGONS_DEN,
         .type = MPS_TYPE_CAVE,
@@ -570,6 +581,13 @@ static const struct BgTemplate sMapPreviewBgTemplate[1] = {
 static u8 GetMapPreviewScreenIdx(mapsec_u8_t mapsec)
 {
     s32 i;
+
+#if IS_HNS
+    // Dark Cave has two distinct entrances (Route 31 south side, Route 45 north side)
+    // sharing one mapsec, so this is the one location needing an entrance-specific preview.
+    if (mapsec == MAPSEC_DARK_CAVE && GetLastUsedWarpMapSectionId() == MAPSEC_ROUTE_45)
+        return MPS_HGSS_DARK_CAVE_45;
+#endif
 
     for (i = 0; i < MPS_COUNT; i++)
     {
