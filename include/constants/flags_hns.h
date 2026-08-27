@@ -915,7 +915,7 @@
 #define FLAG_NEWSINJOH_HOTSPRINGS_ITEM_LAVACOOKIE                     (HNS_EXTENDED_CONTENT_START + 36)
 #define FLAG_NEWSINJOH_HOTSPRINGS_HIDDEN_ITEM1                     (HNS_EXTENDED_CONTENT_START + 37)
 
-#define FLAG_UNUSED_EXTENDED_38                     (HNS_EXTENDED_CONTENT_START + 38)
+#define FLAG_HIDE_MEW                     (HNS_EXTENDED_CONTENT_START + 38)
 #define FLAG_UNUSED_EXTENDED_39                     (HNS_EXTENDED_CONTENT_START + 39)
 
 #define FLAG_ROUTE50_HIDDENITEM_1                     (HNS_EXTENDED_CONTENT_START + 40)
@@ -1816,7 +1816,6 @@
 // Emerald event / hide flags
 #define FLAG_HIDE_ROUTE_101_BIRCH_STARTERS_BAG      0
 #define FLAG_HIDE_SAFARI_ZONE_SOUTH_CONSTRUCTION_WORKERS 0
-#define FLAG_HIDE_MEW                               0
 #define FLAG_HIDE_ROUTE_104_RIVAL                   0
 #define FLAG_HIDE_ROUTE_101_BIRCH_ZIGZAGOON_BATTLE  0
 #define FLAG_HIDE_LITTLEROOT_TOWN_BIRCHS_LAB_BIRCH  0
@@ -2399,6 +2398,23 @@
 #define FLAG_WORLD_MAP_THREE_ISLAND_DUNSPARCE_TUNNEL            0
 #define FLAG_WORLD_MAP_SEVEN_ISLAND_SEVAULT_CANYON_TANOBY_KEY   0
 #define FLAG_WORLD_MAP_BIRTH_ISLAND_EXTERIOR                    0
+
+// HnS Johto world map flags
+#define FLAG_WORLD_MAP_BURNED_TOWER                             0
+#define FLAG_WORLD_MAP_DARK_CAVE                                0
+#define FLAG_WORLD_MAP_DRAGONS_DEN                              0
+#define FLAG_WORLD_MAP_ICE_PATH                                 0
+#define FLAG_WORLD_MAP_ILEX_FOREST                              0
+#define FLAG_WORLD_MAP_MT_MORTAR                                0
+#define FLAG_WORLD_MAP_MT_SILVER                                0
+#define FLAG_WORLD_MAP_NATIONAL_PARK                            0
+#define FLAG_WORLD_MAP_RUINS_OF_ALPH                            0
+#define FLAG_WORLD_MAP_SLOWPOKE_WELL                            0
+#define FLAG_WORLD_MAP_SPROUT_TOWER                             0
+#define FLAG_WORLD_MAP_TIN_TOWER                                0
+#define FLAG_WORLD_MAP_TOHJO_FALLS                              0
+#define FLAG_WORLD_MAP_UNION_CAVE                               0
+#define FLAG_WORLD_MAP_WHIRL_ISLANDS                            0
 
 // FRLG hide flags
 #define FLAG_HIDE_LORELEI_HOUSE_MEOWTH_DOLL                     0
