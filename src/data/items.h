@@ -434,7 +434,7 @@ const struct ItemInfo gItemsInfo[] =
     {
         .name = ITEM_NAME("LEVEL BALL"),
         //.price = (I_PRICE >= GEN_7) ? 0 : 300,
-        .price = 300,
+        .price = 1000,
         .description = COMPOUND_STRING(
             "Good for NORMAL,\n"
             "FLYING, ICE, and\n"
@@ -452,7 +452,7 @@ const struct ItemInfo gItemsInfo[] =
     {
         .name = ITEM_NAME("LURE BALL"),
         //.price = (I_PRICE >= GEN_7) ? 0 : 300,
-        .price = 300,
+        .price = 1000,
         .description = COMPOUND_STRING(
             "Good for WATER,\n"
             "DRAGON, and fished\n"
@@ -470,7 +470,7 @@ const struct ItemInfo gItemsInfo[] =
     {
         .name = ITEM_NAME("MOON BALL"),
         //.price = (I_PRICE >= GEN_7) ? 0 : 300,
-        .price = 300,
+        .price = 1000,
         .description = COMPOUND_STRING(
             "Good for DARK,\n"
             "GHOST, POISON, and\n"
@@ -488,7 +488,7 @@ const struct ItemInfo gItemsInfo[] =
     {
         .name = ITEM_NAME("FRIEND BALL"),
         //.price = (I_PRICE >= GEN_7) ? 0 : 300,
-        .price = 300,
+        .price = 1000,
         .description = COMPOUND_STRING(
             "Good for BUG,\n"
             "GRASS, and making\n"
@@ -506,7 +506,7 @@ const struct ItemInfo gItemsInfo[] =
     {
         .name = ITEM_NAME("LOVE BALL"),
         //.price = (I_PRICE >= GEN_7) ? 0 : 300,
-        .price = 300,
+        .price = 1000,
         .description = COMPOUND_STRING(
             "Good for PSYCHIC,\n"
             "FAIRY, and the\n"
@@ -524,7 +524,7 @@ const struct ItemInfo gItemsInfo[] =
     {
         .name = ITEM_NAME("FAST BALL"),
         //.price = (I_PRICE >= GEN_7) ? 0 : 300,
-        .price = 300,
+        .price = 1000,
         .description = COMPOUND_STRING(
             "Good for fast, FIRE,\n"
             "ELECTRIC, and\n"
@@ -542,7 +542,7 @@ const struct ItemInfo gItemsInfo[] =
     {
         .name = ITEM_NAME("HEAVY BALL"),
         //.price = (I_PRICE >= GEN_7) ? 0 : 300,
-        .price = 300,
+        .price = 1000,
         .description = COMPOUND_STRING(
             "Good for ROCK,\n"
             "GROUND, STEEL, and\n"
@@ -9232,13 +9232,14 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_METAL_COAT] =
     {
         .name = ITEM_NAME("METAL COAT"),
-    #if I_PRICE >= GEN_9
-        .price = 3000,
-    #elif I_PRICE >= GEN_7
-        .price = 2000,
-    #else
-        .price = 100,
-    #endif
+        //#if I_PRICE >= GEN_9
+        //    .price = 3000,
+        //#elif I_PRICE >= GEN_7
+        //    .price = 2000,
+        //#else
+        //    .price = 100,
+        //#endif
+        .price = 20000,
         .holdEffect = HOLD_EFFECT_TYPE_POWER,
         .holdEffectParam = TYPE_BOOST_PARAM,
         .description = COMPOUND_STRING(
@@ -12954,9 +12955,9 @@ const struct ItemInfo gItemsInfo[] =
         .name = ITEM_NAME("TM52"),
         .price = 10000,
         .description = COMPOUND_STRING(
-            "Attacks at full power.\n"
-            "May lower the foe's\n"
-            "Sp. Def."),
+            "Attacks at full\n"
+            "power. May lower\n"
+            "the foe's Sp. Def."),
         .importance = I_REUSABLE_TMS,
         .pocket = POCKET_TM_HM,
         .type = ITEM_USE_PARTY_MENU,
