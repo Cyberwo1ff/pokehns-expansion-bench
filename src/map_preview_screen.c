@@ -840,24 +840,31 @@ static void Task_RunMapPreviewScreenForest(u8 taskId)
         }
         break;
     case 4:
-        switch (data[1])
+        // Each of the three phases below (increment, decrement, idle) now spans
+        // MPS_FOREST_FADE_FRAMES_PER_STEP frames instead of always 1, so the fade
+        // can be slowed down without changing its stepping pattern. The value 1
+        // reproduces the original frame-for-frame behaviour exactly.
+        if (data[1] % MPS_FOREST_FADE_FRAMES_PER_STEP == 0)
         {
-        case 0:
-            data[9]++;
-            if (data[9] > 16)
+            switch (data[1] / MPS_FOREST_FADE_FRAMES_PER_STEP)
             {
-                data[9] = 16;
+            case 0:
+                data[9]++;
+                if (data[9] > 16)
+                {
+                    data[9] = 16;
+                }
+                break;
+            case 1:
+                data[8]--;
+                if (data[8] < 0)
+                {
+                    data[8] = 0;
+                }
+                break;
             }
-            break;
-        case 1:
-            data[8]--;
-            if (data[8] < 0)
-            {
-                data[8] = 0;
-            }
-            break;
         }
-        data[1] = (data[1] + 1) % 3;
+        data[1] = (data[1] + 1) % (MPS_FOREST_FADE_FRAMES_PER_STEP * 3);
         SetGpuReg(REG_OFFSET_BLDALPHA, BLDALPHA_BLEND(data[8], data[9]));
         if (data[8] == 0 && data[9] == 16)
         {

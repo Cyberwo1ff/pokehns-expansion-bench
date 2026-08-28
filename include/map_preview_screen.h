@@ -62,6 +62,11 @@ enum MapPreviewScreenId
                                     // Numbers less than 1 give a shorter fade (negative allowed);
                                     // numbers greater than 1 give a longer fade.
 
+#define MPS_FOREST_FADE_FRAMES_PER_STEP 2   // Frames spent on each of the 16 cross-fade steps when
+                                            // MPS_TYPE_FOREST is used (1 = original speed, ~0.8s
+                                            // total; 2 = ~1.6s). Higher values slow the fade down
+                                            // without changing its stepping pattern.
+
 struct MapPreviewScreen
 {
     mapsec_u8_t mapsec;
