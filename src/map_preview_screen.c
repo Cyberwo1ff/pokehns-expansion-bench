@@ -755,6 +755,14 @@ void MapPreview_StartForestTransition(mapsec_u8_t mapsec)
     SetGpuReg(REG_OFFSET_BLDALPHA, BLDALPHA_BLEND(16, 0));
     SetGpuRegBits(REG_OFFSET_WININ, WININ_WIN0_CLR | WININ_WIN1_CLR);
     SetGpuRegBits(REG_OFFSET_WINOUT, WINOUT_WIN01_CLR);
+    // The preview occupies BG palettes 13-15, but weather only colour-maps 13
+    // (14 and 15 are COLOR_MAP_NONE in sBasePaletteColorMapTypes). Left alone
+    // that darkens just the tiles assigned to bank 13, breaking the image into
+    // visible chunks along palette boundaries on weather maps such as Ilex
+    // Forest (WEATHER_SHADE). Preserve 13 too so the whole preview is uniformly
+    // unaffected by weather, like the CAVE transition is.
+    PreservePaletteInWeather(13);
+
     // No map-name window on the preview itself: the location name is shown by the
     // normal map-name popup once the transition has finished, matching how the
     // CAVE and BASIC previews behave.
@@ -862,6 +870,7 @@ static void Task_RunMapPreviewScreenForest(u8 taskId)
         if (!IsDma3ManagerBusyWithBgCopy())
         {
             MapPreview_UnloadBgOnly();
+            ResetPaletteColorMapType(13);
             SetBgAttribute(0, BG_ATTR_PRIORITY, data[2]);
             SetGpuReg(REG_OFFSET_DISPCNT, data[3]);
             SetGpuReg(REG_OFFSET_BLDCNT, data[4]);
