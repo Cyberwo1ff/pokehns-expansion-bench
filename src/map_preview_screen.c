@@ -4,6 +4,7 @@
 #include "field_weather.h"
 #include "gpu_regs.h"
 #include "malloc.h"
+#include "map_name_popup.h"
 #include "map_preview_screen.h"
 #include "menu.h"
 #include "overworld.h"
@@ -11,6 +12,7 @@
 #include "region_map.h"
 #include "rtc.h"
 #include "script.h"
+#include "secret_base.h"
 #include "string_util.h"
 #include "constants/region_map_sections.h"
 
@@ -185,7 +187,7 @@ static const struct MapPreviewScreen sMapPreviewScreenData[MPS_COUNT] = {
         .mapsec = MAPSEC_VIRIDIAN_FOREST,
         .flagId = FLAG_WORLD_MAP_VIRIDIAN_FOREST,
 #if IS_HNS
-        .type = MPS_TYPE_BASIC,
+        .type = MPS_TYPE_FOREST,
         .tilesptr = sViridianForestHgssMapPreviewTiles,
         .tilemapptr = sViridianForestHgssMapPreviewTilemap,
         .palptr = sViridianForestHgssMapPreviewPalette,
@@ -498,7 +500,7 @@ static const struct MapPreviewScreen sMapPreviewScreenData[MPS_COUNT] = {
     },
     [MPS_HGSS_ILEX_FOREST] = {
         .mapsec = MAPSEC_ILEX_FOREST,
-        .type = MPS_TYPE_BASIC,
+        .type = MPS_TYPE_FOREST,
         .flagId = FLAG_WORLD_MAP_ILEX_FOREST,
         .tilesptr = sIlexForestMapPreviewTiles,
         .tilemapptr = sIlexForestMapPreviewTilemap,
@@ -753,7 +755,9 @@ void MapPreview_StartForestTransition(mapsec_u8_t mapsec)
     SetGpuReg(REG_OFFSET_BLDALPHA, BLDALPHA_BLEND(16, 0));
     SetGpuRegBits(REG_OFFSET_WININ, WININ_WIN0_CLR | WININ_WIN1_CLR);
     SetGpuRegBits(REG_OFFSET_WINOUT, WINOUT_WIN01_CLR);
-    gTasks[taskId].data[11] = MapPreview_CreateMapNameWindow(mapsec);
+    // No map-name window on the preview itself: the location name is shown by the
+    // normal map-name popup once the transition has finished, matching how the
+    // CAVE and BASIC previews behave.
     LockPlayerFieldControls();
 }
 
@@ -802,7 +806,6 @@ static void Task_RunMapPreviewScreenForest(u8 taskId)
     case 0:
         if (!MapPreview_IsGfxLoadFinished() && !IsDma3ManagerBusyWithBgCopy())
         {
-            CopyWindowToVram(data[11], COPYWIN_FULL);
             data[0]++;
         }
         break;
@@ -858,13 +861,16 @@ static void Task_RunMapPreviewScreenForest(u8 taskId)
     case 5:
         if (!IsDma3ManagerBusyWithBgCopy())
         {
-            MapPreview_Unload(data[11]);
+            MapPreview_UnloadBgOnly();
             SetBgAttribute(0, BG_ATTR_PRIORITY, data[2]);
             SetGpuReg(REG_OFFSET_DISPCNT, data[3]);
             SetGpuReg(REG_OFFSET_BLDCNT, data[4]);
             SetGpuReg(REG_OFFSET_BLDALPHA, data[5]);
             SetGpuReg(REG_OFFSET_WININ, data[6]);
             SetGpuReg(REG_OFFSET_WINOUT, data[7]);
+            // Now that the preview is gone, announce the map the normal way.
+            if (gMapHeader.showMapName == TRUE && SecretBaseMapPopupEnabled() == TRUE)
+                ShowMapNamePopup();
             DestroyTask(taskId);
         }
         break;
