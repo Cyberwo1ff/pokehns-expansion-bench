@@ -38,7 +38,9 @@ NewBarkTown_PlayersHouse_1F_EventScript_MomsFriend::
 	end
 
 NewBarkTown_PlayersHouse_1F_MomEventScript_GoodLuck::
-	msgbox NewBarkTown_PlayersHouse_1F_Text_MomLeaving, MSGBOX_DEFAULT
+	msgbox NewBarkTown_PlayersHouse_1F_Text_MomLeaving1, MSGBOX_DEFAULT
+	call NewBarkTown_PlayersHouse_1F_EventScript_SavingInit
+	msgbox NewBarkTown_PlayersHouse_1F_Text_MomLeaving2, MSGBOX_DEFAULT
 	setflag FLAG_MOM_VISITED
 	clearflag FLAG_HIDE_ROUTE_30_NPCS
 	setvar VAR_NEWBARK_TOWN_STATE, 5
@@ -133,6 +135,17 @@ NewBarkTown_PlayersHouse_1F_EventScript_ConfirmEnable::
 	msgbox NewBarkTown_PlayersHouse_1F_Text_SavingEnabled, MSGBOX_DEFAULT
 	goto NewBarkTown_PlayersHouse_1F_EventScript_MomSavingsMenu
 	end
+
+NewBarkTown_PlayersHouse_1F_EventScript_SavingInit::
+	msgbox NewBarkTown_PlayersHouse_1F_Text_EnableSaving, MSGBOX_YESNO
+	compare VAR_RESULT, YES
+	goto_if_eq NewBarkTown_PlayersHouse_1F_EventScript_ConfirmEnableInit
+	return
+
+NewBarkTown_PlayersHouse_1F_EventScript_ConfirmEnableInit::
+	special Special_MomEnableSaving
+	msgbox NewBarkTown_PlayersHouse_1F_Text_SavingEnabled, MSGBOX_DEFAULT
+	return
 
 NewBarkTown_PlayersHouse_1F_EventScript_DisableSaving::
 	msgbox NewBarkTown_PlayersHouse_1F_Text_DisableSaving, MSGBOX_YESNO
@@ -337,12 +350,14 @@ NewBarkTown_PlayersHouse_1F_Text_MomsFriend:
 	.string "becoming PROF.ELM's assistant.\p"
 	.string "She really loves POKéMON!$"
 
-NewBarkTown_PlayersHouse_1F_Text_MomLeaving:
+NewBarkTown_PlayersHouse_1F_Text_MomLeaving1:
 	.string "MOM: Wow, that's a cute POKéMON.\n"
 	.string "Where did you get it?\p"
 	.string "…\p"
 	.string "So, you're leaving on an adventure...\n"
-	.string "That does sound challenging...\p"
+	.string "That does sound challenging...$"
+
+NewBarkTown_PlayersHouse_1F_Text_MomLeaving2:
 	.string "Just be careful.\p"
 	.string "POKéMON are your friends.\n"
 	.string "You need to work as a team.\p"

@@ -216,6 +216,7 @@ extern const u8 BattleScript_BerryConfuseHeal[];
 extern const u8 BattleScript_ConsumableStatRaiseRet[];
 extern const u8 BattleScript_BerryFocusEnergy[];
 extern const u8 BattleScript_ActionSelectionItemsCantBeUsed[];
+extern const u8 BattleScript_ActionSelectionFourItemsUsed[];
 extern const u8 BattleScript_AbilityAvoidsDamage[];
 extern const u8 BattleScript_AbilityShieldProtects[];
 extern const u8 BattleScript_ArenaTurnBeginning[];
