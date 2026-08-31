@@ -1697,7 +1697,14 @@ static void DoCB1_Overworld(u16 newKeys, u16 heldKeys)
     FieldClearPlayerInput(&inputStruct);
     FieldGetPlayerInput(&inputStruct, newKeys, heldKeys);
     CancelSignPostMessageBox(&inputStruct);
-    if (!ArePlayerFieldControlsLocked())
+    if (!ArePlayerFieldControlsLocked()
+#if IS_FRLG || IS_HNS
+     // The FOREST map preview cross-fades over the live map, so it holds the
+     // player still here rather than through LockPlayerFieldControls - the
+     // warp-exit task would clear that lock the moment the preview appears.
+     && !MapPreview_ForestInputIsLocked()
+#endif
+       )
     {
         if (ProcessPlayerFieldInput(&inputStruct) == 1)
         {

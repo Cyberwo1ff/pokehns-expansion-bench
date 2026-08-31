@@ -67,6 +67,21 @@ enum MapPreviewScreenId
                                             // total; 2 = ~1.6s). Higher values slow the fade down
                                             // without changing its stepping pattern.
 
+// Total frames the MPS_TYPE_FOREST cross-fade itself runs for. The fade advances
+// one of its 16 alpha steps on each of the first two phases of a 3-phase cycle,
+// and finishes on the second phase of the 16th cycle: (15 * 3 + 1) * N = 46 * N.
+#define MPS_FOREST_FADE_TOTAL_FRAMES (46 * MPS_FOREST_FADE_FRAMES_PER_STEP)
+
+// How far into the MPS_TYPE_FOREST cross-fade the player stays rooted in place.
+// The CAVE and BASIC previews run before the map is handed back, so the player
+// simply cannot move during them; the FOREST preview cross-fades over the live
+// map, and the warp-exit task returns controls the moment the weather fade-in
+// ends - i.e. right as the preview starts its hold, while it is still fully
+// opaque. The player is therefore held for the whole hold plus this much of the
+// cross-fade, so control only comes back once the map underneath is visible.
+// 0 = unlock the instant the fade starts, 100 = stay locked for the whole fade.
+#define MPS_FOREST_LOCK_FADE_PERCENT 50
+
 struct MapPreviewScreen
 {
     mapsec_u8_t mapsec;
@@ -99,5 +114,6 @@ void MapPreview_Unload(s32 windowId);
 void MapPreview_UnloadBgOnly(void);
 void MapPreview_StartForestTransition(mapsec_u8_t mapsec);
 bool8 MapPreview_ForestFadeIsActive(void);
+bool8 MapPreview_ForestInputIsLocked(void);
 
 #endif //GUARD_MAP_PREVIEW_SCREEN_H
