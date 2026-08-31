@@ -22,6 +22,10 @@ static EWRAM_DATA bool8 sHasVisitedMapBefore = FALSE;
 
 static EWRAM_DATA bool8 sAllocedBg0TilemapBuffer = FALSE;
 
+// Frames the player is still held in place for by the FOREST transition, ticked
+// down by Task_RunMapPreviewScreenForest. See MPS_FOREST_LOCK_FADE_PERCENT.
+static EWRAM_DATA u16 sForestInputLockFrames = 0;
+
 static void Task_RunMapPreviewScreenForest(u8 taskId);
 
 static const u8 sViridianForestMapPreviewPalette[] = INCBIN_U8("graphics/map_preview/frlg/viridian_forest/tiles.gbapal");
@@ -767,6 +771,14 @@ void MapPreview_StartForestTransition(mapsec_u8_t mapsec)
     // normal map-name popup once the transition has finished, matching how the
     // CAVE and BASIC previews behave.
     LockPlayerFieldControls();
+
+    // This lock does not survive on its own: the warp-exit task (Task_ExitNonDoor
+    // and friends) unlocks controls as soon as the weather fade-in finishes, which
+    // is exactly when the preview's hold begins - so without the window below the
+    // player can walk around behind a still-opaque preview. Counted down from the
+    // start of the hold, not from here, since states 0-2 are still fading in.
+    sForestInputLockFrames = gTasks[taskId].data[10]
+                           + MPS_FOREST_FADE_TOTAL_FRAMES * MPS_FOREST_LOCK_FADE_PERCENT / 100;
 }
 
 u16 MapPreview_CreateMapNameWindow(mapsec_u8_t mapsec)
@@ -804,11 +816,26 @@ bool32 ForestMapPreviewScreenIsRunning(void)
     }
 }
 
+// Whether the FOREST transition is still holding the player in place. Gated on
+// the task actually running so a transition that never reaches its cleanup can
+// not leave the player permanently frozen.
+bool8 MapPreview_ForestInputIsLocked(void)
+{
+    return (sForestInputLockFrames != 0 && ForestMapPreviewScreenIsRunning() == TRUE);
+}
+
 static void Task_RunMapPreviewScreenForest(u8 taskId)
 {
     s16 * data;
 
     data = gTasks[taskId].data;
+
+    // Only ticks from the hold (state 3) onward - during states 0-2 the screen is
+    // still fading in and the warp-exit task has not handed controls back yet, so
+    // counting there would shorten the window the player actually feels.
+    if (data[0] >= 3 && sForestInputLockFrames != 0)
+        sForestInputLockFrames--;
+
     switch (data[0])
     {
     case 0:
@@ -878,6 +905,7 @@ static void Task_RunMapPreviewScreenForest(u8 taskId)
         {
             MapPreview_UnloadBgOnly();
             ResetPaletteColorMapType(13);
+            sForestInputLockFrames = 0;
             SetBgAttribute(0, BG_ATTR_PRIORITY, data[2]);
             SetGpuReg(REG_OFFSET_DISPCNT, data[3]);
             SetGpuReg(REG_OFFSET_BLDCNT, data[4]);
