@@ -6011,8 +6011,8 @@ const struct SpeciesInfo gSpeciesInfoGen2[] =
         .trainerScale = 256,
         .trainerOffset = 0,
         .frontPic = gMonFrontPic_Teddiursa,
-        .frontPicSize = P_GBA_STYLE_SPECIES_GFX ? MON_COORDS_SIZE(32, 40) : MON_COORDS_SIZE(40, 40),
-        .frontPicYOffset = P_GBA_STYLE_SPECIES_GFX ? 13 : 12,
+        .frontPicSize = P_GBA_STYLE_SPECIES_GFX ? MON_COORDS_SIZE(32, 48) : MON_COORDS_SIZE(40, 40),
+        .frontPicYOffset = P_GBA_STYLE_SPECIES_GFX ? 11 : 12,
         .frontAnimFrames = ANIM_FRAMES(
             ANIMCMD_FRAME(1, 30),
             ANIMCMD_FRAME(0, 20),
