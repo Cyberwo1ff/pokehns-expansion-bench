@@ -534,7 +534,7 @@ static const struct MapPreviewScreen sMapPreviewScreenData[MPS_COUNT] = {
     },
     [MPS_HGSS_NATIONAL_PARK] = {
         .mapsec = MAPSEC_NATIONAL_PARK,
-        .type = MPS_TYPE_BASIC,
+        .type = MPS_TYPE_FOREST,
         .flagId = FLAG_WORLD_MAP_NATIONAL_PARK,
         .tilesptr = sNationalParkMapPreviewTiles,
         .tilemapptr = sNationalParkMapPreviewTilemap,
