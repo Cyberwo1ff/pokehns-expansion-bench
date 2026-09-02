@@ -165,7 +165,7 @@ static bool8 TryDoMapTransition(void)
     enum MapType toType = GetCurrentMapType();
 
 #if IS_HNS
-    if (GetLastUsedWarpMapSectionId() != gMapHeader.regionMapSectionId
+    if (MapPreview_WarpEntersNewLocation() == TRUE
      && (MapHasPreviewScreen_HandleQLState2(gMapHeader.regionMapSectionId, MPS_TYPE_CAVE) == TRUE
       || MapHasPreviewScreen_HandleQLState2(gMapHeader.regionMapSectionId, MPS_TYPE_BASIC) == TRUE))
     {

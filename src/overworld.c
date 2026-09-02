@@ -2436,7 +2436,7 @@ static bool32 LoadMapInStepsLocal(u8 *state, bool32 a2)
         break;
     case 11:
 #if IS_HNS
-        if (GetLastUsedWarpMapSectionId() != gMapHeader.regionMapSectionId
+        if (MapPreview_WarpEntersNewLocation() == TRUE
          && MapHasPreviewScreen_HandleQLState2(gMapHeader.regionMapSectionId, MPS_TYPE_FOREST) == TRUE)
         {
             MapPreview_LoadGfx(gMapHeader.regionMapSectionId);
