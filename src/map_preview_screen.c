@@ -877,6 +877,14 @@ static void Task_RunMapPreviewScreenForest(u8 taskId)
     if (data[0] >= 3 && sForestInputLockFrames != 0)
         sForestInputLockFrames--;
 
+    // The preview owns BLDALPHA for as long as this task lives, so re-assert it every
+    // frame rather than only while the cross-fade is stepping. data[8]/data[9] hold
+    // 16/0 - fully opaque - until state 4 starts moving them, which keeps the preview
+    // solid through the gfx load and the hold. Without this the FadeInFromBlack() call
+    // in state 1 left the whole preview part-transparent until state 4's first write.
+    // State 4 writes again after stepping, so the fade itself is unchanged.
+    SetGpuReg(REG_OFFSET_BLDALPHA, BLDALPHA_BLEND(data[8], data[9]));
+
     switch (data[0])
     {
     case 0:
