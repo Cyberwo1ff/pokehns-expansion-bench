@@ -534,7 +534,7 @@ static const struct MapPreviewScreen sMapPreviewScreenData[MPS_COUNT] = {
     },
     [MPS_HGSS_NATIONAL_PARK] = {
         .mapsec = MAPSEC_NATIONAL_PARK,
-        .type = MPS_TYPE_BASIC,
+        .type = MPS_TYPE_FOREST,
         .flagId = FLAG_WORLD_MAP_NATIONAL_PARK,
         .tilesptr = sNationalParkMapPreviewTiles,
         .tilemapptr = sNationalParkMapPreviewTilemap,
@@ -667,6 +667,47 @@ bool8 MapHasPreviewScreen(mapsec_u8_t mapsec, u8 type)
 bool32 MapHasPreviewScreen_HandleQLState2(mapsec_u8_t mapsec, u8 type)
 {
     return MapHasPreviewScreen(mapsec, type);
+}
+
+#if IS_HNS
+static bool32 WarpIsMap(const struct WarpData *warp, u16 mapConst)
+{
+    return warp->mapGroup == MAP_GROUP(mapConst) && warp->mapNum == MAP_NUM(mapConst);
+}
+#endif
+
+// Whether the warp just taken counts as arriving somewhere new, and so whether the
+// destination's preview is allowed to play at all. Normally that is just a change of
+// map section, but one gatehouse breaks that assumption - see below.
+bool32 MapPreview_WarpEntersNewLocation(void)
+{
+#if IS_HNS
+    // Both halves of the National Park gatehouse - Route 35 to the park's south side
+    // and Route 36 to its east side - are a single map that is itself tagged
+    // MAPSEC_NATIONAL_PARK. The map-section test therefore fires the park's preview
+    // as the player steps off the route into the gate, and can never fire it on the
+    // gate -> park warp because the section does not change there. Move the boundary
+    // to the park proper: never preview on the way into the gate, and treat the way
+    // out of it as arriving somewhere new.
+    if (WarpIsMap(&gSaveBlock1Ptr->location, MAP_GATE_NATIONAL_PARK_HNS))
+        return FALSE;
+
+    // Starting a Bug Contest warps the player into the park's contest copy instead,
+    // from either half of the gate. That is the start of a timed event rather than an
+    // arrival, so it keeps the plain warp with no preview - the map constant covers
+    // every route in, both attendants' scripts and the warp out of the gate's north
+    // tile, so there is no need to test where the player came from.
+    if (WarpIsMap(&gSaveBlock1Ptr->location, MAP_NATIONAL_PARK_BUG_CONTEST_HNS))
+        return FALSE;
+
+    // Any other way out of the gate counts as arriving. In practice that only adds
+    // the park exits - the gate's route exits already change map section, so they
+    // pass the test below anyway - and the routes have no preview of their own.
+    if (WarpIsMap(&gLastUsedWarp, MAP_GATE_NATIONAL_PARK_HNS))
+        return TRUE;
+#endif
+
+    return GetLastUsedWarpMapSectionId() != gMapHeader.regionMapSectionId;
 }
 
 void MapPreview_InitBgs(void)
@@ -835,6 +876,14 @@ static void Task_RunMapPreviewScreenForest(u8 taskId)
     // counting there would shorten the window the player actually feels.
     if (data[0] >= 3 && sForestInputLockFrames != 0)
         sForestInputLockFrames--;
+
+    // The preview owns BLDALPHA for as long as this task lives, so re-assert it every
+    // frame rather than only while the cross-fade is stepping. data[8]/data[9] hold
+    // 16/0 - fully opaque - until state 4 starts moving them, which keeps the preview
+    // solid through the gfx load and the hold. Without this the FadeInFromBlack() call
+    // in state 1 left the whole preview part-transparent until state 4's first write.
+    // State 4 writes again after stepping, so the fade itself is unchanged.
+    SetGpuReg(REG_OFFSET_BLDALPHA, BLDALPHA_BLEND(data[8], data[9]));
 
     switch (data[0])
     {

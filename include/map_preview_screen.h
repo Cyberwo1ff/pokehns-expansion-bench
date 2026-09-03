@@ -107,6 +107,7 @@ bool8 MapHasPreviewScreen(mapsec_u8_t mapsec, u8 type);
 bool32 ForestMapPreviewScreenIsRunning(void);
 const struct MapPreviewScreen * GetDungeonMapPreviewScreenInfo(mapsec_u8_t mapsec);
 bool32 MapHasPreviewScreen_HandleQLState2(mapsec_u8_t mapsec, u8 type);
+bool32 MapPreview_WarpEntersNewLocation(void);
 void MapPreview_InitBgs(void);
 void MapPreview_LoadGfx(mapsec_u8_t mapsec);
 bool32 MapPreview_IsGfxLoadFinished(void);
