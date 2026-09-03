@@ -811,7 +811,12 @@ void FadeSelectedPals(u8 mode, s8 delay, u32 selectedPalettes)
         gWeatherPtr->palProcessingState = WEATHER_PAL_STATE_SCREEN_FADING_IN;
         gWeatherPtr->fadeInFirstFrame = TRUE;
         gWeatherPtr->fadeInTimer = 0;
-        Weather_SetBlendCoeffs(gWeatherPtr->currBlendEVA, gWeatherPtr->currBlendEVB);
+        // The forest map preview calls FadeInFromBlack() from inside its own task and
+        // then drives BLDALPHA itself, so re-applying the weather's stored coefficients
+        // here would leave the preview part-transparent for its whole hold. Task-scoped
+        // on purpose: this must only be skipped while that transition is actually live.
+        if (!ForestMapPreviewScreenIsRunning())
+            Weather_SetBlendCoeffs(gWeatherPtr->currBlendEVA, gWeatherPtr->currBlendEVB);
         gWeatherPtr->readyForInit = TRUE;
     }
 }
