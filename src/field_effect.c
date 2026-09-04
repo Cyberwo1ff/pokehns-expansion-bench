@@ -1390,9 +1390,10 @@ static void PokeballGlowEffect_PlaceBalls(struct Sprite *sprite)
     u8 spriteId;
     if (sprite->sTimer == 0 || (--sprite->sTimer) == 0)
     {
-        u16 ballItem = GetMonData(&gPlayerParty[sprite->sCounter], MON_DATA_POKEBALL);
-        u8 ballId = ItemIdToBallId(ballItem);
-        u8 frameIdx = sBallIdToGlowFrame[ballId];
+        // MON_DATA_POKEBALL already stores a BALL_* id in this codebase, unlike
+        // upstream HNS_modern where it stores the ball's item id.
+        enum PokeBall ballId = GetMonData(&gPlayerParty[sprite->sCounter], MON_DATA_POKEBALL);
+        u8 frameIdx = (ballId < POKEBALL_COUNT) ? sBallIdToGlowFrame[ballId] : 0;
         sprite->sTimer = 25;
         spriteId = CreateSpriteAtEnd(&sSpriteTemplate_PokeballGlowFull, sPokeballCoordOffsets[sprite->sCounter].x + sprite->x2, sPokeballCoordOffsets[sprite->sCounter].y + sprite->y2, 0);
         gSprites[spriteId].oam.priority = 3;
