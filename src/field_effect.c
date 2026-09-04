@@ -495,9 +495,15 @@ static const struct SpriteFrameImage sPicTable_PokeballGlowFull[] =
     overworld_frame(sPokeballGlowFull_Gfx, 1, 1, 17),
     overworld_frame(sPokeballGlowFull_Gfx, 1, 1, 18),
     overworld_frame(sPokeballGlowFull_Gfx, 1, 1, 19),
+    overworld_frame(sPokeballGlowFull_Gfx, 1, 1, 20),
+    overworld_frame(sPokeballGlowFull_Gfx, 1, 1, 21),
+    overworld_frame(sPokeballGlowFull_Gfx, 1, 1, 22),
 };
 
-// Maps BALL_* enum value to frame index in sPicTable_PokeballGlowFull
+// Maps BALL_* enum value to frame index in sPicTable_PokeballGlowFull.
+// Ball types with no artwork of their own stay at GLOW_FRAME_DEFAULT.
+#define GLOW_FRAME_DEFAULT 0 // plain Poke Ball
+
 static const u8 sBallIdToGlowFrame[POKEBALL_COUNT] =
 {
     [BALL_POKE]    = 0,
@@ -520,6 +526,9 @@ static const u8 sBallIdToGlowFrame[POKEBALL_COUNT] =
     [BALL_LEVEL]   = 17,
     [BALL_FAST]    = 18,
     [BALL_GS]      = 19,
+    [BALL_SPORT]   = 20,
+    [BALL_DUSK]    = 21,
+    [BALL_BEAST]   = 22,
 };
 
 static const struct SpriteFrameImage sPicTable_PokecenterMonitor[] =
@@ -1393,7 +1402,7 @@ static void PokeballGlowEffect_PlaceBalls(struct Sprite *sprite)
         // MON_DATA_POKEBALL already stores a BALL_* id in this codebase, unlike
         // upstream HNS_modern where it stores the ball's item id.
         enum PokeBall ballId = GetMonData(&gPlayerParty[sprite->sCounter], MON_DATA_POKEBALL);
-        u8 frameIdx = (ballId < POKEBALL_COUNT) ? sBallIdToGlowFrame[ballId] : 0;
+        u8 frameIdx = (ballId < POKEBALL_COUNT) ? sBallIdToGlowFrame[ballId] : GLOW_FRAME_DEFAULT;
         sprite->sTimer = 25;
         spriteId = CreateSpriteAtEnd(&sSpriteTemplate_PokeballGlowFull, sPokeballCoordOffsets[sprite->sCounter].x + sprite->x2, sPokeballCoordOffsets[sprite->sCounter].y + sprite->y2, 0);
         gSprites[spriteId].oam.priority = 3;
