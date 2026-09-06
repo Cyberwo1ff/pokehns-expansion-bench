@@ -6828,22 +6828,12 @@ const u32 gObjectEventPic_Substitute[] = INCBIN_COMP("graphics/pokemon/question_
 #endif //P_FAMILY_TOTODILE
 
 #if P_FAMILY_SENTRET
-#if !P_GBA_STYLE_SPECIES_GFX
+    // Custom: Sentret always uses the non-GBA-style sprite set, regardless of P_GBA_STYLE_SPECIES_GFX.
     const u32 gMonFrontPic_Sentret[] = INCBIN_U32("graphics/pokemon/sentret/anim_front.4bpp.smol");
     const u16 gMonPalette_Sentret[] = INCBIN_U16("graphics/pokemon/sentret/normal.gbapal");
     const u32 gMonBackPic_Sentret[] = INCBIN_U32("graphics/pokemon/sentret/back.4bpp.smol");
     const u16 gMonShinyPalette_Sentret[] = INCBIN_U16("graphics/pokemon/sentret/shiny.gbapal");
-#else
-    const u32 gMonFrontPic_Sentret[] = INCBIN_U32("graphics/pokemon/sentret/anim_front_gba.4bpp.smol");
-    const u16 gMonPalette_Sentret[] = INCBIN_U16("graphics/pokemon/sentret/normal_gba.gbapal");
-    const u32 gMonBackPic_Sentret[] = INCBIN_U32("graphics/pokemon/sentret/back_gba.4bpp.smol");
-    const u16 gMonShinyPalette_Sentret[] = INCBIN_U16("graphics/pokemon/sentret/shiny_gba.gbapal");
-#endif //P_GBA_STYLE_SPECIES_GFX
-#if !P_GBA_STYLE_SPECIES_ICONS
     const u8 gMonIcon_Sentret[] = INCBIN_U8("graphics/pokemon/sentret/icon.4bpp");
-#else
-    const u8 gMonIcon_Sentret[] = INCBIN_U8("graphics/pokemon/sentret/icon_gba.4bpp");
-#endif //P_GBA_STYLE_SPECIES_ICONS
 #if P_FOOTPRINTS
     const u8 gMonFootprint_Sentret[] = INCBIN_U8("graphics/pokemon/sentret/footprint.1bpp");
 #endif //P_FOOTPRINTS

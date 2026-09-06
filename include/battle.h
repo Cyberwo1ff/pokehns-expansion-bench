@@ -979,6 +979,7 @@ extern u16 gChosenMove;
 extern u16 gCalledMove;
 extern s32 gBideDmg[MAX_BATTLERS_COUNT];
 extern u16 gLastUsedItem;
+extern u8 gItemLimit;
 extern enum Ability gLastUsedAbility;
 extern enum BattlerId gBattlerAttacker;
 extern enum BattlerId gBattlerTarget;

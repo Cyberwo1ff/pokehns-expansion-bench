@@ -22,6 +22,7 @@
 #include "follower_helper.h"
 #include "gpu_regs.h"
 #include "graphics.h"
+#include "map_preview_screen.h"
 #include "mauville_old_man.h"
 #include "metatile_behavior.h"
 #include "overworld.h"
@@ -2940,6 +2941,22 @@ static u32 GetLightTypeFromTemplate(struct ObjectEventTemplate *template)
     return template->trainerRange_berryTreeId;
 }
 
+// Whether the MPS_TYPE_FOREST map preview is mid-cross-fade and therefore owns
+// BLDALPHA. That fade drives the blend coefficients itself every frame, but light
+// sprites run every frame too and reset them to the shadow coefficients below,
+// which pins the fade at a fixed blend instead of letting it run. Keyed on the
+// task actually being alive, not on the map merely having a forest preview, so
+// the lights behave normally for the rest of the time the player is on the map.
+// Ilex Forest hid this for a long time by having no light sprites at all.
+static bool32 ForestMapPreviewOwnsBlendCoeffs(void)
+{
+#if IS_FRLG || IS_HNS
+    return ForestMapPreviewScreenIsRunning();
+#else
+    return FALSE;
+#endif
+}
+
 // Sprite callback for light sprites
 void UpdateLightSprite(struct Sprite *sprite)
 {
@@ -2958,7 +2975,8 @@ void UpdateLightSprite(struct Sprite *sprite)
         DestroySprite(sprite);
         FieldEffectFreeTilesIfUnused(sheetTileStart);
         FieldEffectFreePaletteIfUnused(paletteNum);
-        Weather_SetBlendCoeffs(7, BASE_SHADOW_INTENSITY); // TODO: Restore original blend coeffs at dawn
+        if (!ForestMapPreviewOwnsBlendCoeffs())
+            Weather_SetBlendCoeffs(7, BASE_SHADOW_INTENSITY); // TODO: Restore original blend coeffs at dawn
         return;
     }
 
@@ -2990,7 +3008,8 @@ void UpdateLightSprite(struct Sprite *sprite)
         sprite->invisible = FALSE;
     }
     // Note: Don't set window registers during hardware fade!
-    Weather_SetBlendCoeffs(7, BASE_SHADOW_INTENSITY);
+    if (!ForestMapPreviewOwnsBlendCoeffs())
+        Weather_SetBlendCoeffs(7, BASE_SHADOW_INTENSITY);
 }
 
 // Spawn a light at a map coordinate
@@ -10314,26 +10333,6 @@ enum Direction GetLedgeJumpDirection(s16 x, s16 y, enum Direction direction)
     return DIR_NONE;
 }
 
-static void SetObjectEventSpriteOamTableForLongGrass(struct ObjectEvent *objEvent, struct Sprite *sprite)
-{
-    if (objEvent->disableCoveringGroundEffects)
-        return;
-
-    if (objEvent->fixedPriority)
-        return;
-
-    if (!MetatileBehavior_IsLongGrass(objEvent->currentMetatileBehavior))
-        return;
-
-    if (!MetatileBehavior_IsLongGrass(objEvent->previousMetatileBehavior))
-        return;
-
-    sprite->subspriteTableNum = 4;
-
-    if (ElevationToPriority(objEvent->previousElevation) == 1)
-        sprite->subspriteTableNum = 5;
-}
-
 bool8 IsElevationMismatchAt(u8 elevation, s16 x, s16 y)
 {
     u8 mapElevation;
@@ -10827,7 +10826,6 @@ static void DoGroundEffects_OnSpawn(struct ObjectEvent *objEvent, struct Sprite 
             sprite->subspriteMode = SUBSPRITES_ON;
         UpdateObjectEventElevationAndPriority(objEvent, sprite);
         GetAllGroundEffectFlags_OnSpawn(objEvent, &flags);
-        SetObjectEventSpriteOamTableForLongGrass(objEvent, sprite);
         DoFlaggedGroundEffects(objEvent, sprite, flags);
         objEvent->triggerGroundEffectsOnMove = FALSE;
         objEvent->disableCoveringGroundEffects = 0;
@@ -10849,7 +10847,6 @@ static void DoGroundEffects_OnBeginStep(struct ObjectEvent *objEvent, struct Spr
             sprite->subspriteMode = SUBSPRITES_ON;
         UpdateObjectEventElevationAndPriority(objEvent, sprite);
         GetAllGroundEffectFlags_OnBeginStep(objEvent, &flags);
-        SetObjectEventSpriteOamTableForLongGrass(objEvent, sprite);
         filters_out_some_ground_effects(objEvent, &flags);
         DoFlaggedGroundEffects(objEvent, sprite, flags);
         objEvent->triggerGroundEffectsOnMove = FALSE;
@@ -10870,7 +10867,6 @@ static void DoGroundEffects_OnFinishStep(struct ObjectEvent *objEvent, struct Sp
         flags = 0;
         UpdateObjectEventElevationAndPriority(objEvent, sprite);
         GetAllGroundEffectFlags_OnFinishStep(objEvent, &flags);
-        SetObjectEventSpriteOamTableForLongGrass(objEvent, sprite);
         FilterOutStepOnPuddleGroundEffectIfJumping(objEvent, &flags);
         DoFlaggedGroundEffects(objEvent, sprite, flags);
         objEvent->triggerGroundEffectsOnStop = 0;

@@ -41,6 +41,7 @@
 #include "malloc.h"
 #include "m4a.h"
 #include "map_name_popup.h"
+#include "map_preview_screen.h"
 #include "match_call.h"
 #include "menu.h"
 #include "metatile_behavior.h"
@@ -1581,6 +1582,11 @@ enum MapType GetLastUsedWarpMapType(void)
     return GetMapTypeByWarpData(&gLastUsedWarp);
 }
 
+mapsec_u8_t GetLastUsedWarpMapSectionId(void)
+{
+    return Overworld_GetMapHeaderByGroupAndId(gLastUsedWarp.mapGroup, gLastUsedWarp.mapNum)->regionMapSectionId;
+}
+
 bool8 IsMapTypeOutdoors(enum MapType mapType)
 {
     if (mapType == MAP_TYPE_ROUTE
@@ -1691,7 +1697,14 @@ static void DoCB1_Overworld(u16 newKeys, u16 heldKeys)
     FieldClearPlayerInput(&inputStruct);
     FieldGetPlayerInput(&inputStruct, newKeys, heldKeys);
     CancelSignPostMessageBox(&inputStruct);
-    if (!ArePlayerFieldControlsLocked())
+    if (!ArePlayerFieldControlsLocked()
+#if IS_FRLG || IS_HNS
+     // The FOREST map preview cross-fades over the live map, so it holds the
+     // player still here rather than through LockPlayerFieldControls - the
+     // warp-exit task would clear that lock the moment the preview appears.
+     && !MapPreview_ForestInputIsLocked()
+#endif
+       )
     {
         if (ProcessPlayerFieldInput(&inputStruct) == 1)
         {
@@ -2422,6 +2435,15 @@ static bool32 LoadMapInStepsLocal(u8 *state, bool32 a2)
         (*state)++;
         break;
     case 11:
+#if IS_HNS
+        if (MapPreview_WarpEntersNewLocation() == TRUE
+         && MapHasPreviewScreen_HandleQLState2(gMapHeader.regionMapSectionId, MPS_TYPE_FOREST) == TRUE)
+        {
+            MapPreview_LoadGfx(gMapHeader.regionMapSectionId);
+            MapPreview_StartForestTransition(gMapHeader.regionMapSectionId);
+        }
+        else
+#endif
         if (gMapHeader.showMapName == TRUE && SecretBaseMapPopupEnabled() == TRUE)
             ShowMapNamePopup();
         (*state)++;
