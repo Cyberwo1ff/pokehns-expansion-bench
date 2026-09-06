@@ -31,6 +31,7 @@
 #include "constants/layouts.h"
 #include "constants/songs.h"
 #include "constants/weather.h"
+#include "config/fishing.h"
 #include "pokenav.h"
 #include "sound.h"
 
@@ -73,7 +74,7 @@ EWRAM_DATA bool8 gIsSurfingEncounter = 0;
 EWRAM_DATA u8 gChainFishingDexNavStreak = 0;
 EWRAM_DATA bool8 gIsSweetScentEncounter = 0;
 EWRAM_DATA u8 gSweetScentChainStreak = 0;
-EWRAM_DATA static bool8 sSweetScentLureExpired = 0;
+EWRAM_DATA static bool8 sChainLureExpired = 0;
 
 #include "data/wild_encounters.h"
 
@@ -596,7 +597,6 @@ static u16 GenerateFishingWildMon(const struct WildPokemonInfo *wildMonInfo, u8 
     wildMonSpecies = RandomizeWildEncounter(wildMonSpecies, gSaveBlock1Ptr->location.mapNum, gSaveBlock1Ptr->location.mapGroup, WILD_AREA_FISHING, wildMonIndex);
     #endif
 
-    UpdateChainFishingStreak();
     CreateWildMon(wildMonSpecies, level);
     return wildMonSpecies;
 }
@@ -884,33 +884,41 @@ void RockSmashWildEncounter(void)
     }
 }
 
-// Sweet Scent chaining. Repeatedly using Sweet Scent without leaving the tile
-// builds a chain that adds shiny rerolls on the stepped curve Gen 7 used for SOS
-// battles: +4 rolls at chain 11, +8 at 21, +12 at 31. The rolls are fed into the
-// shared reroll budget in CreateBoxMon, so they stack additively with the Shiny
-// Charm, an active Lure and DexNav rather than running their own odds check.
-#define SWEET_SCENT_CHAIN_TIER_1      11
-#define SWEET_SCENT_CHAIN_TIER_2      21
-#define SWEET_SCENT_CHAIN_TIER_3      31
-#define MAX_SWEET_SCENT_CHAIN         SWEET_SCENT_CHAIN_TIER_3
+// Shiny chaining. Repeatedly triggering encounters the same way without leaving
+// the tile builds a chain that adds shiny rerolls on the stepped curve Gen 7 used
+// for SOS battles: +4 rolls at chain 11, +8 at 21, +12 at 31. The rolls are fed
+// into the shared reroll budget in CreateBoxMon, so they stack additively with the
+// Shiny Charm, an active Lure and DexNav rather than running their own odds check.
+//
+// Sweet Scent and fishing both draw from CalculateChainShinyRolls so the two
+// curves cannot drift apart. Note the chain is incremented before the wild mon is
+// generated, so the first encounter counts as chain 1 and the 11th is the first to
+// pay out.
+#define MAX_SWEET_SCENT_CHAIN         MAX_SHINY_CHAIN
 
-// Steps of an active Lure burned per Sweet Scent use. Deliberately steep: Sweet
-// Scent chaining and Lure hunting are meant to compete for the same item rather
-// than be stacked for free.
-#define SWEET_SCENT_LURE_COST         7
+// Steps of an active Lure burned per chained encounter. Deliberately steep:
+// chaining and Lure hunting are meant to compete for the same item rather than be
+// stacked for free. At this cost only a MAX LURE funds a chain all the way to the
+// top tier (36 encounters vs the 31 needed).
+#define CHAIN_LURE_COST               7
+
+u32 CalculateChainShinyRolls(u32 streak)
+{
+    if (streak >= CHAIN_SHINY_TIER_3)
+        return 12;
+    if (streak >= CHAIN_SHINY_TIER_2)
+        return 8;
+    if (streak >= CHAIN_SHINY_TIER_1)
+        return 4;
+    return 0;
+}
 
 u32 CalculateSweetScentChainShinyRolls(void)
 {
     if (!gIsSweetScentEncounter)
         return 0;
 
-    if (gSweetScentChainStreak >= SWEET_SCENT_CHAIN_TIER_3)
-        return 12;
-    if (gSweetScentChainStreak >= SWEET_SCENT_CHAIN_TIER_2)
-        return 8;
-    if (gSweetScentChainStreak >= SWEET_SCENT_CHAIN_TIER_1)
-        return 4;
-    return 0;
+    return CalculateChainShinyRolls(gSweetScentChainStreak);
 }
 
 void ResetSweetScentChain(void)
@@ -920,12 +928,12 @@ void ResetSweetScentChain(void)
 
 // Consumes the "a Lure ran out mid-encounter" latch. CB2_EndWildBattle reads this
 // to run EventScript_SprayWoreOff once the overworld is back, since firing it
-// during the battle transition is not possible.
-bool8 TryConsumeSweetScentLureExpiry(void)
+// during the battle transition is not possible. Shared by both chain types.
+bool8 TryConsumeChainLureExpiry(void)
 {
-    bool8 expired = sSweetScentLureExpired;
+    bool8 expired = sChainLureExpired;
 
-    sSweetScentLureExpired = FALSE;
+    sChainLureExpired = FALSE;
     return expired;
 }
 
@@ -942,7 +950,7 @@ static bool32 IsChainingAvailable(void)
 // Steps live in the low 15 bits of VAR_REPEL_STEP_COUNT with bit 15 flagging Lure
 // vs Repel, so a bare subtraction past zero wraps into a ~32000 step Lure. Clamp
 // instead: a Lure with fewer steps left than the cost is simply used up.
-static void ConsumeLureStepsForSweetScent(void)
+void ConsumeLureStepsForChainEncounter(void)
 {
     u16 repelLureVar = VarGet(VAR_REPEL_STEP_COUNT);
     u16 steps = REPEL_LURE_STEPS(repelLureVar);
@@ -950,14 +958,14 @@ static void ConsumeLureStepsForSweetScent(void)
     if (!IS_LAST_USED_LURE(repelLureVar) || steps == 0)
         return;
 
-    if (steps <= SWEET_SCENT_LURE_COST)
+    if (steps <= CHAIN_LURE_COST)
     {
         steps = 0;
-        sSweetScentLureExpired = TRUE;
+        sChainLureExpired = TRUE;
     }
     else
     {
-        steps -= SWEET_SCENT_LURE_COST;
+        steps -= CHAIN_LURE_COST;
     }
 
     VarSet(VAR_REPEL_STEP_COUNT, steps | REPEL_LURE_MASK);
@@ -975,7 +983,7 @@ static void SweetScentBeginEncounter(void)
     if (gSweetScentChainStreak < MAX_SWEET_SCENT_CHAIN)
         gSweetScentChainStreak++;
 
-    ConsumeLureStepsForSweetScent();
+    ConsumeLureStepsForChainEncounter();
 }
 
 bool8 SweetScentWildEncounter(void)
@@ -1082,6 +1090,17 @@ void FishingWildEncounter(u8 rod)
     enum TimeOfDay timeOfDay;
 
     gIsFishingEncounter = TRUE;
+
+    // Ahead of both branches so a FEEBAS cast advances the chain and pays the Lure
+    // like any other, and so the chain this encounter earns is the one its shiny
+    // rolls are drawn from. Both are gated on I_FISHING_CHAIN: with chaining off
+    // there is no chain to fund, so casting must not quietly eat a Lure.
+    if (I_FISHING_CHAIN && IsChainingAvailable())
+    {
+        UpdateChainFishingStreak();
+        ConsumeLureStepsForChainEncounter();
+    }
+
     if (CheckFeebas() == TRUE)
     {
         u8 level = ChooseWildMonLevel(&sWildFeebas, 0, WILD_AREA_FISHING);

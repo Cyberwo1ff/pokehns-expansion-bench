@@ -199,9 +199,10 @@ int ProcessPlayerFieldInput(struct FieldInput *input)
     {
         IncrementGameStat(GAME_STAT_STEPS);
         IncrementBirthIslandRockStepCount();
-        // Leaving the tile breaks a Sweet Scent chain. Turning in place is not a
-        // step, so it does not reach here.
+        // Leaving the tile breaks a shiny chain. Turning in place is not a step,
+        // so it does not reach here.
         ResetSweetScentChain();
+        gChainFishingDexNavStreak = 0;
         if (TryStartStepBasedScript(&position, metatileBehavior, playerDirection) == TRUE)
             return TRUE;
     }

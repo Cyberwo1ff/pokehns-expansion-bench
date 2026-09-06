@@ -762,7 +762,7 @@ static void CB2_EndWildBattle(void)
 
     // Consumed unconditionally: on a whiteout the script must not be left armed
     // to ambush the player after some later, unrelated battle.
-    lureExpired = TryConsumeSweetScentLureExpiry();
+    lureExpired = TryConsumeChainLureExpiry();
 
     if (IsPlayerDefeated(gBattleOutcome) == TRUE && CurrentBattlePyramidLocation() == PYRAMID_LOCATION_NONE && !InBattlePike())
     {
@@ -770,9 +770,9 @@ static void CB2_EndWildBattle(void)
     }
     else if (lureExpired)
     {
-        // A Lure ran out paying for the Sweet Scent that started this battle. Run
-        // the usual wore-off script now that the overworld is coming back, which
-        // also offers a replacement from the bag.
+        // A Lure ran out paying for the chained encounter that started this
+        // battle. Run the usual wore-off script now that the overworld is coming
+        // back, which also offers a replacement from the bag.
         DowngradeBadPoison();
         ScriptContext_SetupScript(EventScript_SprayWoreOff);
         SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);

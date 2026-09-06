@@ -44,6 +44,14 @@ struct WildPokemonHeader
 };
 
 
+// Stepped shiny-roll bonus shared by every chaining method, matching the curve
+// Gen 7 used for SOS battles. Chains are incremented before the wild mon is
+// generated, so the first encounter is chain 1 and the 11th is the first to pay.
+#define CHAIN_SHINY_TIER_1  11
+#define CHAIN_SHINY_TIER_2  21
+#define CHAIN_SHINY_TIER_3  31
+#define MAX_SHINY_CHAIN     CHAIN_SHINY_TIER_3
+
 extern const struct WildPokemonHeader gWildMonHeaders[];
 extern bool8 gIsFishingEncounter;
 extern bool8 gIsSurfingEncounter;
@@ -63,8 +71,10 @@ bool8 TryDoDoubleWildBattle(void);
 bool8 StandardWildEncounter_Debug(void);
 u32 CalculateChainFishingShinyRolls(void);
 u32 CalculateSweetScentChainShinyRolls(void);
+u32 CalculateChainShinyRolls(u32 streak);
 void ResetSweetScentChain(void);
-bool8 TryConsumeSweetScentLureExpiry(void);
+bool8 TryConsumeChainLureExpiry(void);
+void ConsumeLureStepsForChainEncounter(void);
 void CreateWildMon(u16 species, u8 level);
 u16 GetCurrentMapWildMonHeaderId(void);
 u32 ChooseWildMonIndex_Land(void);

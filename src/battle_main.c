@@ -5937,15 +5937,19 @@ static void FreeResetData_ReturnToOvOrDoEvolutions(void)
 {
     if (!gPaletteFade.active)
     {
-        gIsFishingEncounter = FALSE;
-        gIsSurfingEncounter = FALSE;
-
-        // The Sweet Scent chain survives only a won Sweet Scent battle. Running,
-        // catching, losing and any encounter that did not come from Sweet Scent
-        // (a spun-into wild battle, a trainer) all end it.
+        // A shiny chain survives only a won battle of its own encounter type.
+        // Running, catching, losing and any encounter that did not come from that
+        // method (a spun-into wild battle, a trainer) all end it. Both tests must
+        // run BEFORE their flag is cleared below, or the chain resets every battle
+        // and chaining silently never works.
         if (!gIsSweetScentEncounter || gBattleOutcome != B_OUTCOME_WON)
             gSweetScentChainStreak = 0;
+        if (!gIsFishingEncounter || gBattleOutcome != B_OUTCOME_WON)
+            gChainFishingDexNavStreak = 0;
+
         gIsSweetScentEncounter = FALSE;
+        gIsFishingEncounter = FALSE;
+        gIsSurfingEncounter = FALSE;
 
         if (gDexNavSpecies && (gBattleOutcome == B_OUTCOME_WON || gBattleOutcome == B_OUTCOME_CAUGHT))
         {
