@@ -6,7 +6,7 @@
 #define I_FISHING_ENVIRONMENT       GEN_LATEST // In Gen 3, the battle environment when fighting a hooked Pokémon is based on the tile the player is standing on. In Gen 4 onwards, the environment is based on tile that is being fished in, resulting in it usually being a water environment.
 #define I_FISHING_STICKY_BOOST      GEN_LATEST // In Gen 3, a Pokemon with Suction Cups or Sticky Hold in the first slot of the party causes the chance for a bite to increase by about 35%. In Gen 4 onwards, it doubles the base bite chance.
 #define I_FISHING_FOLLOWER_BOOST    TRUE      // In HGSS, fishing bite odds are increased depending on the friendship of the current following Pokémon.
-#define I_FISHING_CHAIN             FALSE      // Introduced in XY, hooking the same Pokémon repeatedly will increase the odds of that mon being shiny. NOTE: This implementation is an approximation of the actual feature, as XY have not been throughoutly documented or datamined.
+#define I_FISHING_CHAIN             TRUE       // Introduced in XY, hooking the same Pokémon repeatedly will increase the odds of that mon being shiny. NOTE: this game does NOT use XY's linear curve (2 rolls per link, capped at chain 20, ~1/100 against Gen 6's 1/4096 base). It shares the stepped SOS-battle curve with Sweet Scent chaining instead - see CalculateChainShinyRolls in wild_encounter.c - because XY's numbers stack badly with this game's shiny-odds setting.
 #define I_FISHING_PROXIMITY         FALSE      // In XY, bite chance is boosted by the number of adjacent non-surfable tiles next to your fishing line
 #define I_FISHING_TIME_OF_DAY_BOOST FALSE      // In XY, bite chance is boosted during morning and evening
 

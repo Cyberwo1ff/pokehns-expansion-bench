@@ -83,7 +83,7 @@ static const struct FriendshipHookChanceBoost sFriendshipHookChanceBoostArray[] 
     {.threshold =   0, .bonus =  0},
 };
 
-#define FISHING_CHAIN_SHINY_STREAK_MAX 20
+#define FISHING_CHAIN_SHINY_STREAK_MAX MAX_SHINY_CHAIN
 
 enum
 {
@@ -523,7 +523,7 @@ static u32 CalculateFishingBiteOdds(u32 rod, bool32 isStickyHold)
         odds *= 2;
 
     odds = min(100, odds);
-    DebugPrintf("Fishing odds: %d", odds);
+    // DebugPrintf("Fishing odds: %d", odds);
     return odds;
 }
 
@@ -640,19 +640,22 @@ void UpdateChainFishingStreak()
     if (!I_FISHING_CHAIN)
         return;
 
-    if (gChainFishingDexNavStreak == MAX_u8)
+    if (gChainFishingDexNavStreak >= FISHING_CHAIN_SHINY_STREAK_MAX)
         return;
 
     gChainFishingDexNavStreak++;
 }
 
+// Shares the stepped SOS curve with Sweet Scent chaining rather than the linear
+// XY formula the expansion ships (2 rolls per link, capped at chain 20). The XY
+// numbers assume Gen 6's 1/4096 base and stack badly with this game's shiny-odds
+// setting, reaching 1/12 at its most generous value.
 u32 CalculateChainFishingShinyRolls(void)
 {
     if (!I_FISHING_CHAIN || !gIsFishingEncounter)
         return 0;
-    u32 a = 2 * min(gChainFishingDexNavStreak, FISHING_CHAIN_SHINY_STREAK_MAX);
-    DebugPrintf("Total Shiny Rolls %d", a);
-    return a;
+
+    return CalculateChainShinyRolls(gChainFishingDexNavStreak);
 }
 
 bool32 ShouldUseFishingEnvironmentInBattle()

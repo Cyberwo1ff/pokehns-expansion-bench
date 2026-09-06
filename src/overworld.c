@@ -1013,6 +1013,7 @@ static void LoadMapFromWarp(bool32 a1)
     UpdateLocationHistoryForRoamer();
     MoveAllRoamersToOtherLocationSets();
     gChainFishingDexNavStreak = 0;
+    ResetSweetScentChain();
     if ((gMapHeader.mapLayoutId == LAYOUT_BATTLE_FRONTIER_BATTLE_PYRAMID_FLOOR || gMapHeader.mapLayoutId == LAYOUT_BATTLE_FRONTIER_BATTLE_PYRAMID_FLOOR_HNS))
         InitBattlePyramidMap(FALSE);
     else if (InTrainerHill())

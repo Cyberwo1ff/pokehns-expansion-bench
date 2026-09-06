@@ -3255,7 +3255,11 @@ static void BattleStartClearSetData(void)
     gBattleStruct->runTries = 0;
     gBattleStruct->safariGoNearCounter = 0;
     gBattleStruct->safariPkblThrowCounter = 0;
+    // Species with a catch rate under 13 would truncate to a factor of 0, which
+    // zeroes the capture odds and leaves bait/rock unable to move it off 0.
     gBattleStruct->safariCatchFactor = gSpeciesInfo[GetMonData(&gEnemyParty[0], MON_DATA_SPECIES)].catchRate * 100 / 1275;
+    if (gBattleStruct->safariCatchFactor == 0)
+        gBattleStruct->safariCatchFactor = 1;
     gBattleStruct->safariEscapeFactor = 3;
     gBattleStruct->wildVictorySong = 0;
     // Amulet Coin applies as long as any party mon holds it, even if that mon never enters the battle.
@@ -5817,6 +5821,9 @@ static void HandleEndTurn_FinishBattle(void)
         if (gIsFishingEncounter && IsMonShiny(&gEnemyParty[0]))
             gChainFishingDexNavStreak = 0;
 
+        if (gIsSweetScentEncounter && IsMonShiny(&gEnemyParty[0]))
+            gSweetScentChainStreak = 0;
+
         if (!(gBattleTypeFlags & (BATTLE_TYPE_LINK
                                   | BATTLE_TYPE_EREADER_TRAINER
                                   | BATTLE_TYPE_RECORDED_LINK
@@ -5934,8 +5941,20 @@ static void FreeResetData_ReturnToOvOrDoEvolutions(void)
 {
     if (!gPaletteFade.active)
     {
+        // A shiny chain survives only a won battle of its own encounter type.
+        // Running, catching, losing and any encounter that did not come from that
+        // method (a spun-into wild battle, a trainer) all end it. Both tests must
+        // run BEFORE their flag is cleared below, or the chain resets every battle
+        // and chaining silently never works.
+        if (!gIsSweetScentEncounter || gBattleOutcome != B_OUTCOME_WON)
+            gSweetScentChainStreak = 0;
+        if (!gIsFishingEncounter || gBattleOutcome != B_OUTCOME_WON)
+            gChainFishingDexNavStreak = 0;
+
+        gIsSweetScentEncounter = FALSE;
         gIsFishingEncounter = FALSE;
         gIsSurfingEncounter = FALSE;
+
         if (gDexNavSpecies && (gBattleOutcome == B_OUTCOME_WON || gBattleOutcome == B_OUTCOME_CAUGHT))
         {
             IncrementDexNavChain();

@@ -22,6 +22,7 @@
 #include "field_specials.h"
 #include "field_weather.h"
 #include "fishing.h"
+#include "wild_encounter.h"
 #include "follower_npc.h"
 #include "frontier_util.h"
 #include "graphics.h"
@@ -2533,7 +2534,7 @@ static const u32 sNationalToSpeciesOrder[NATIONAL_DEX_COUNT] =
     NATIONAL_TO_SPECIES(DECIDUEYE_HISUI),
 #endif
 #if P_PALDEAN_FORMS
-    [NATIONAL_DEX_TAUROS_PALDEA - 1] = SPECIES_TAUROS_PALDEA_AQUA,
+    [NATIONAL_DEX_TAUROS_PALDEA - 1] = SPECIES_TAUROS_PALDEA_COMBAT,
     NATIONAL_TO_SPECIES(WOOPER_PALDEA),
 #endif
 #endif
@@ -3343,6 +3344,7 @@ void CreateBoxMon(struct BoxPokemon *boxMon, u16 species, u8 level, u32 personal
             if (LURE_STEP_COUNT != 0)
                 totalRerolls += 1;
             totalRerolls += CalculateChainFishingShinyRolls();
+            totalRerolls += CalculateSweetScentChainShinyRolls();
             if (gDexNavSpecies)
                 totalRerolls += CalculateDexNavShinyRolls();
 
