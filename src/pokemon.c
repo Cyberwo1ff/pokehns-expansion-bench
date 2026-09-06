@@ -22,6 +22,7 @@
 #include "field_specials.h"
 #include "field_weather.h"
 #include "fishing.h"
+#include "wild_encounter.h"
 #include "follower_npc.h"
 #include "frontier_util.h"
 #include "graphics.h"
@@ -3343,6 +3344,7 @@ void CreateBoxMon(struct BoxPokemon *boxMon, u16 species, u8 level, u32 personal
             if (LURE_STEP_COUNT != 0)
                 totalRerolls += 1;
             totalRerolls += CalculateChainFishingShinyRolls();
+            totalRerolls += CalculateSweetScentChainShinyRolls();
             if (gDexNavSpecies)
                 totalRerolls += CalculateDexNavShinyRolls();
 

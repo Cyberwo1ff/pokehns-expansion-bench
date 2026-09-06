@@ -48,6 +48,8 @@ extern const struct WildPokemonHeader gWildMonHeaders[];
 extern bool8 gIsFishingEncounter;
 extern bool8 gIsSurfingEncounter;
 extern u8 gChainFishingDexNavStreak;
+extern bool8 gIsSweetScentEncounter;
+extern u8 gSweetScentChainStreak;
 
 void DisableWildEncounters(bool8 disabled);
 bool8 StandardWildEncounter(u16 curMetatileBehavior, u16 prevMetatileBehavior);
@@ -60,6 +62,9 @@ bool8 UpdateRepelCounter(void);
 bool8 TryDoDoubleWildBattle(void);
 bool8 StandardWildEncounter_Debug(void);
 u32 CalculateChainFishingShinyRolls(void);
+u32 CalculateSweetScentChainShinyRolls(void);
+void ResetSweetScentChain(void);
+bool8 TryConsumeSweetScentLureExpiry(void);
 void CreateWildMon(u16 species, u8 level);
 u16 GetCurrentMapWildMonHeaderId(void);
 u32 ChooseWildMonIndex_Land(void);

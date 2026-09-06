@@ -5817,6 +5817,9 @@ static void HandleEndTurn_FinishBattle(void)
         if (gIsFishingEncounter && IsMonShiny(&gEnemyParty[0]))
             gChainFishingDexNavStreak = 0;
 
+        if (gIsSweetScentEncounter && IsMonShiny(&gEnemyParty[0]))
+            gSweetScentChainStreak = 0;
+
         if (!(gBattleTypeFlags & (BATTLE_TYPE_LINK
                                   | BATTLE_TYPE_EREADER_TRAINER
                                   | BATTLE_TYPE_RECORDED_LINK
@@ -5936,6 +5939,14 @@ static void FreeResetData_ReturnToOvOrDoEvolutions(void)
     {
         gIsFishingEncounter = FALSE;
         gIsSurfingEncounter = FALSE;
+
+        // The Sweet Scent chain survives only a won Sweet Scent battle. Running,
+        // catching, losing and any encounter that did not come from Sweet Scent
+        // (a spun-into wild battle, a trainer) all end it.
+        if (!gIsSweetScentEncounter || gBattleOutcome != B_OUTCOME_WON)
+            gSweetScentChainStreak = 0;
+        gIsSweetScentEncounter = FALSE;
+
         if (gDexNavSpecies && (gBattleOutcome == B_OUTCOME_WON || gBattleOutcome == B_OUTCOME_CAUGHT))
         {
             IncrementDexNavChain();

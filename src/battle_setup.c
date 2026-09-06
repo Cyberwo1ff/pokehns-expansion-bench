@@ -31,6 +31,7 @@
 #include "secret_base.h"
 #include "string_util.h"
 #include "overworld.h"
+#include "wild_encounter.h"
 #include "field_weather.h"
 #include "battle_tower.h"
 #include "gym_leader_rematch.h"
@@ -93,6 +94,8 @@ static void RegisterTrainerInMatchCall(void);
 static void HandleRematchVarsOnBattleEnd(void);
 static const u8 *GetIntroSpeechOfApproachingTrainer(void);
 static const u8 *GetTrainerCantBattleSpeech(void);
+
+extern const u8 EventScript_SprayWoreOff[];
 
 EWRAM_DATA TrainerBattleParameter gTrainerBattleParameter = {0};
 EWRAM_DATA u16 gPartnerTrainerId = 0;
@@ -743,6 +746,8 @@ static void DowngradeBadPoison(void)
 
 static void CB2_EndWildBattle(void)
 {
+    bool8 lureExpired;
+
     CpuFill16(0, (void *)(BG_PLTT), BG_PLTT_SIZE);
     ResetOamRange(0, 128);
 
@@ -755,9 +760,22 @@ static void CB2_EndWildBattle(void)
             HealPlayerParty();
     }
 
+    // Consumed unconditionally: on a whiteout the script must not be left armed
+    // to ambush the player after some later, unrelated battle.
+    lureExpired = TryConsumeSweetScentLureExpiry();
+
     if (IsPlayerDefeated(gBattleOutcome) == TRUE && CurrentBattlePyramidLocation() == PYRAMID_LOCATION_NONE && !InBattlePike())
     {
         SetMainCallback2(CB2_WhiteOut);
+    }
+    else if (lureExpired)
+    {
+        // A Lure ran out paying for the Sweet Scent that started this battle. Run
+        // the usual wore-off script now that the overworld is coming back, which
+        // also offers a replacement from the bag.
+        DowngradeBadPoison();
+        ScriptContext_SetupScript(EventScript_SprayWoreOff);
+        SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
     }
     else
     {
