@@ -922,6 +922,7 @@ static bool8 HandleMainMenuInput(u8 taskId)
     }
     else if ((JOY_NEW(DPAD_UP)) && tCurrItem > 0)
     {
+        PlaySECursorMove(SE_SELECT);
         if (tMenuType == HAS_MYSTERY_EVENTS && tIsScrolled == TRUE && tCurrItem == 1)
         {
             ChangeBgY(0, 0x2000, BG_COORD_SUB);
@@ -934,6 +935,7 @@ static bool8 HandleMainMenuInput(u8 taskId)
     }
     else if ((JOY_NEW(DPAD_DOWN)) && tCurrItem < tItemCount - 1)
     {
+        PlaySECursorMove(SE_SELECT);
         if (tMenuType == HAS_MYSTERY_EVENTS && tCurrItem == 3 && tIsScrolled == FALSE)
         {
             ChangeBgY(0, 0x2000, BG_COORD_ADD);
@@ -949,6 +951,14 @@ static bool8 HandleMainMenuInput(u8 taskId)
 
 static void Task_HandleMainMenuInput(u8 taskId)
 {
+    // The title screen fades the BGM out on its way here. With the GB Player on that
+    // strands NR50 (the PSG master volume) low - GBSMain drives it every frame a track
+    // runs and simply stops writing when the track ends mid-fade - which leaves every
+    // CGB-voiced sound, the menu beeps included, muffled. Repair it once the BGM has
+    // actually gone; GBSMain overwrites NR50 again by itself next time a track plays.
+    if (IsBGMStopped())
+        RestorePSGMasterVolume();
+
     if (HandleMainMenuInput(taskId))
         gTasks[taskId].func = Task_HighlightSelectedMainMenuItem;
 }
