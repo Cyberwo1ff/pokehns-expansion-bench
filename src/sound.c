@@ -669,10 +669,10 @@ void PlaySE(u16 songNum)
     }
 }
 
+// Cursor movement is navigation feedback, so it stays audible in GB Sounds mode
+// too - SE_SELECT has no song_gbs mapping, so this is the standard blip either way.
 void PlaySECursorMove(u16 songNum)
 {
-    if (FlagGet(FLAG_SYS_GBS_ENABLED))
-        return;
     m4aSongNumStart(songNum, FALSE);
 }
 

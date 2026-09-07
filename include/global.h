@@ -341,6 +341,10 @@ struct ChallengeSettings
     u8 tx_Features_FrontierBans:1;
     u8 tx_Difficulty_EscapeRopeDig:1;
     u8 tx_Features_ShinyChance:4;
+    // Appended here on purpose: this packs into the spare upper bits of the
+    // byte tx_Features_ShinyChance already occupies, so sizeof is unchanged and
+    // no existing field shifts. Old saves read it back as 0 (= normal nights).
+    u8 brighterNights:1;
 };
 
 struct SaveBlock3

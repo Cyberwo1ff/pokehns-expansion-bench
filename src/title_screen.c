@@ -49,6 +49,8 @@ static void MainCB2(void);
 static void Task_TitleScreenPhase1(u8);
 static void Task_TitleScreenPhase2(u8);
 static void Task_TitleScreenPhase3(u8);
+static void Task_TitleScreenCryFlash(u8);
+static void Task_TitleScreenCryWait(u8);
 static void CB2_GoToMainMenu(void);
 static void CB2_GoToClearSaveDataScreen(void);
 static void CB2_GoToResetRtcScreen(void);
@@ -805,9 +807,12 @@ static void Task_TitleScreenPhase3(u8 taskId)
 {
     if (JOY_NEW(A_BUTTON) || JOY_NEW(START_BUTTON))
     {
-        FadeOutBGM(4);
+        // HGSS confirms the title screen with the box legendary's cry over a quick
+        // white flash, keeping the BGM running, and only fades out to the menu once
+        // the cry has finished. The sequence is split across the two tasks below.
+        PlayCry_Normal(SPECIES_SUICUNE, 0);
         BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_WHITEALPHA);
-        SetMainCallback2(CB2_GoToMainMenu);
+        gTasks[taskId].func = Task_TitleScreenCryFlash;
     }
     else if (JOY_HELD(CLEAR_SAVE_BUTTON_COMBO) == CLEAR_SAVE_BUTTON_COMBO)
     {
@@ -842,6 +847,29 @@ static void Task_TitleScreenPhase3(u8 taskId)
             BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_WHITEALPHA);
             SetMainCallback2(CB2_GoToCopyrightScreen);
         }
+    }
+}
+
+// Flash back down from white onto the title screen. The BGM and the cry both keep
+// running through this - only the screen has moved.
+static void Task_TitleScreenCryFlash(u8 taskId)
+{
+    if (!gPaletteFade.active)
+    {
+        BeginNormalPaletteFade(PALETTES_ALL, 0, 16, 0, RGB_WHITEALPHA);
+        gTasks[taskId].func = Task_TitleScreenCryWait;
+    }
+}
+
+// Hold on the title screen until the cry has actually finished, then drop the music
+// and fade out to the main menu.
+static void Task_TitleScreenCryWait(u8 taskId)
+{
+    if (!gPaletteFade.active && !IsCryPlaying())
+    {
+        FadeOutBGM(4);
+        BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
+        SetMainCallback2(CB2_GoToMainMenu);
     }
 }
 
