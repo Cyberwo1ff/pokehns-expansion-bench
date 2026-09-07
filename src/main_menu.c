@@ -600,7 +600,9 @@ static u32 InitMainMenu(bool8 returningFromOptionsMenu)
     ResetTasks();
     ResetSpriteData();
     FreeAllSpritePalettes();
-    if (returningFromOptionsMenu)
+    // The HnS title screen ends its cry sequence on a fade to black, so match it -
+    // fading in from white there would read as a flash. FRLG still fades out white.
+    if (returningFromOptionsMenu || IS_HNS)
         BeginNormalPaletteFade(PALETTES_ALL, 0, 0x10, 0, RGB_BLACK); // fade to black
     else
         BeginNormalPaletteFade(PALETTES_ALL, 0, 0x10, 0, RGB_WHITEALPHA); // fade to white
