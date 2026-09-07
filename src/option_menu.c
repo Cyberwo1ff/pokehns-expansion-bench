@@ -51,6 +51,7 @@ enum {
     ITEM_MAIN_FASTER_JOY,
     ITEM_MAIN_UNIT_TYPE,
     ITEM_MAIN_MATCHCALL,
+    ITEM_MAIN_BRIGHT_NIGHTS,
     ITEM_MAIN_FRAMETYPE,
     ITEM_MAIN_COUNT,
 };
@@ -204,6 +205,13 @@ static const u8 *const sChoices_OnOff[] = {
     COMPOUND_STRING("OFF"),
 };
 
+// For settings stored the natural way round (0 = off), unlike the inverted
+// storage most of the options above use.
+static const u8 *const sChoices_OffOn[] = {
+    COMPOUND_STRING("OFF"),
+    COMPOUND_STRING("ON"),
+};
+
 static const u8 *const sChoices_ShiftSet[] = {
     COMPOUND_STRING("SHIFT"),
     COMPOUND_STRING("SET"),
@@ -314,6 +322,10 @@ static const u8 *const sDesc_UnitType[] = {
 static const u8 *const sDesc_MatchCall[] = {
     COMPOUND_STRING("TRAINERs will be able to call you,\noffering rematches and info."),
     COMPOUND_STRING("You will not receive calls.\nSpecial events will still occur."),
+};
+static const u8 *const sDesc_BrightNights[] = {
+    COMPOUND_STRING("Night is at its full darkness."),
+    COMPOUND_STRING("Night is lightened, making it\neasier to see outdoors."),
 };
 static const u8 *const sDesc_FrameType[] = {
     COMPOUND_STRING("Choose the frame surrounding the\nwindows."),
@@ -441,6 +453,12 @@ static const struct OptionMenuItem sTabItems_Main[] = {
         .descriptions = sDesc_MatchCall,
         .numChoices   = 2,
         .choiceNames  = sChoices_OnOff,
+    },
+    [ITEM_MAIN_BRIGHT_NIGHTS] = {
+        .name         = COMPOUND_STRING("BRIGHT NIGHTS"),
+        .descriptions = sDesc_BrightNights,
+        .numChoices   = 2,
+        .choiceNames  = sChoices_OffOn,
     },
     [ITEM_MAIN_FRAMETYPE] = {
         .name         = COMPOUND_STRING("FRAME"),
@@ -1089,6 +1107,7 @@ static void Task_Save(u8 taskId)
         FlagClear(FLAG_EVEN_FASTER_JOY);
     cs->unitSystem         = *GetSelectionPtr(TAB_MAIN, ITEM_MAIN_UNIT_TYPE);
     cs->disableMatchCall   = *GetSelectionPtr(TAB_MAIN, ITEM_MAIN_MATCHCALL);
+    cs->brighterNights     = *GetSelectionPtr(TAB_MAIN, ITEM_MAIN_BRIGHT_NIGHTS);
 
     cs->fastIntro          = *GetSelectionPtr(TAB_BATTLE, ITEM_BATTLE_FAST_INTRO);
     cs->fastBattle         = *GetSelectionPtr(TAB_BATTLE, ITEM_BATTLE_FAST_BATTLES);
@@ -1197,6 +1216,7 @@ void CB2_InitOptionMenu(void)
         *GetSelectionPtr(TAB_MAIN, ITEM_MAIN_FASTER_JOY)     = cs->evenFasterJoy;
         *GetSelectionPtr(TAB_MAIN, ITEM_MAIN_UNIT_TYPE)      = cs->unitSystem;
         *GetSelectionPtr(TAB_MAIN, ITEM_MAIN_MATCHCALL)    = cs->disableMatchCall;
+        *GetSelectionPtr(TAB_MAIN, ITEM_MAIN_BRIGHT_NIGHTS) = cs->brighterNights;
 
         *GetSelectionPtr(TAB_BATTLE, ITEM_BATTLE_FAST_INTRO)      = cs->fastIntro;
         *GetSelectionPtr(TAB_BATTLE, ITEM_BATTLE_FAST_BATTLES)    = cs->fastBattle;
