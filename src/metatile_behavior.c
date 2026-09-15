@@ -14,6 +14,11 @@ static const u8 sTileBitAttributes[NUM_METATILE_BEHAVIORS] =
     [MB_UNUSED_05]                          = TILE_FLAG_HAS_ENCOUNTERS,
     [MB_DEEP_SAND]                          = TILE_FLAG_UNUSED | TILE_FLAG_HAS_ENCOUNTERS,
     [MB_SHORT_GRASS]                        = TILE_FLAG_UNUSED,
+    [MB_SHORT_GRASS_ENCOUNTERS]             = TILE_FLAG_UNUSED | TILE_FLAG_HAS_ENCOUNTERS,
+    [MB_SHORT_GRASS_IMPASSABLE_NORTH]       = TILE_FLAG_UNUSED,
+    [MB_SHORT_GRASS_ANIMATED_DOOR]          = TILE_FLAG_UNUSED,
+    [MB_SHORT_GRASS_CABLE_BOX_RESULTS_1]    = TILE_FLAG_UNUSED,
+    [MB_SHORT_GRASS_WEST_ARROW_WARP]        = TILE_FLAG_UNUSED,
     [MB_CAVE]                               = TILE_FLAG_UNUSED | TILE_FLAG_HAS_ENCOUNTERS,
     [MB_LONG_GRASS_SOUTH_EDGE]              = TILE_FLAG_UNUSED,
     [MB_NO_RUNNING]                         = TILE_FLAG_UNUSED,
@@ -237,7 +242,8 @@ bool8 MetatileBehavior_IsIce(u8 metatileBehavior)
 
 bool8 MetatileBehavior_IsWarpDoor(u8 metatileBehavior)
 {
-    if (metatileBehavior == MB_ANIMATED_DOOR)
+    if (metatileBehavior == MB_ANIMATED_DOOR
+     || metatileBehavior == MB_SHORT_GRASS_ANIMATED_DOOR)
         return TRUE;
     else
         return FALSE;
@@ -246,7 +252,8 @@ bool8 MetatileBehavior_IsWarpDoor(u8 metatileBehavior)
 bool8 MetatileBehavior_IsDoor(u8 metatileBehavior)
 {
     if (metatileBehavior == MB_PETALBURG_GYM_DOOR
-     || metatileBehavior == MB_ANIMATED_DOOR)
+     || metatileBehavior == MB_ANIMATED_DOOR
+     || metatileBehavior == MB_SHORT_GRASS_ANIMATED_DOOR)
         return TRUE;
     else
         return FALSE;
@@ -313,7 +320,8 @@ bool8 MetatileBehavior_IsEastArrowWarp(u8 metatileBehavior)
 
 bool8 MetatileBehavior_IsWestArrowWarp(u8 metatileBehavior)
 {
-    if (metatileBehavior == MB_WEST_ARROW_WARP)
+    if (metatileBehavior == MB_WEST_ARROW_WARP
+     || metatileBehavior == MB_SHORT_GRASS_WEST_ARROW_WARP)
         return TRUE;
     else
         return FALSE;
@@ -532,7 +540,8 @@ bool8 MetatileBehavior_IsHeadbuttTree(u8 metatileBehavior)
 
 bool8 MetatileBehavior_IsCableBoxResults1(u8 metatileBehavior)
 {
-    if (metatileBehavior == MB_CABLE_BOX_RESULTS_1)
+    if (metatileBehavior == MB_CABLE_BOX_RESULTS_1
+     || metatileBehavior == MB_SHORT_GRASS_CABLE_BOX_RESULTS_1)
         return TRUE;
     else
         return FALSE;
@@ -995,7 +1004,8 @@ bool8 MetatileBehavior_IsNorthBlocked(u8 metatileBehavior)
      || metatileBehavior == MB_IMPASSABLE_NORTHWEST
      || metatileBehavior == MB_IMPASSABLE_SOUTH_AND_NORTH
      || metatileBehavior == MB_TALL_GRASS_IMPASSABLE_NORTH
-     || metatileBehavior == MB_CAVE_IMPASSABLE_NORTH)
+     || metatileBehavior == MB_CAVE_IMPASSABLE_NORTH
+     || metatileBehavior == MB_SHORT_GRASS_IMPASSABLE_NORTH)
         return TRUE;
     else
         return FALSE;
@@ -1014,7 +1024,12 @@ bool8 MetatileBehavior_IsSouthBlocked(u8 metatileBehavior)
 
 bool8 MetatileBehavior_IsShortGrass(u8 metatileBehavior)
 {
-    if (metatileBehavior == MB_SHORT_GRASS)
+    if (metatileBehavior == MB_SHORT_GRASS
+     || metatileBehavior == MB_SHORT_GRASS_ENCOUNTERS
+     || metatileBehavior == MB_SHORT_GRASS_IMPASSABLE_NORTH
+     || metatileBehavior == MB_SHORT_GRASS_ANIMATED_DOOR
+     || metatileBehavior == MB_SHORT_GRASS_CABLE_BOX_RESULTS_1
+     || metatileBehavior == MB_SHORT_GRASS_WEST_ARROW_WARP)
         return TRUE;
     else
         return FALSE;
