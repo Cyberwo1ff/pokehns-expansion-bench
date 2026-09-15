@@ -245,6 +245,21 @@ enum {
     MB_HEADBUTT_TREE,
     MB_WATER_NORTH_ARROW_WARP,
     MB_BRIDGE_OVER_ICE,
+    // Appended, never inserted: these ids are baked into every tileset's
+    // metatile_attributes.bin, so inserting one renumbers the whole game.
+    // Short grass that still spawns wild encounters -- Ilex Forest's floor
+    // needs both, which MB_SHORT_GRASS (no encounters) cannot provide.
+    MB_SHORT_GRASS_ENCOUNTERS,
+    // Short grass on a tile that also blocks northward movement, for grass that
+    // sits under a ledge -- mirrors the existing MB_TALL_GRASS_IMPASSABLE_NORTH
+    // and MB_CAVE_IMPASSABLE_NORTH pairings.
+    MB_SHORT_GRASS_IMPASSABLE_NORTH,
+    // Short grass on tiles that also carry a door/warp/interaction behaviour.
+    // The behaviour field holds one value, so grass that doubles as one of these
+    // needs its own constant to keep both the rustle and the original function.
+    MB_SHORT_GRASS_ANIMATED_DOOR,
+    MB_SHORT_GRASS_CABLE_BOX_RESULTS_1,
+    MB_SHORT_GRASS_WEST_ARROW_WARP,
     NUM_METATILE_BEHAVIORS
 };
 
