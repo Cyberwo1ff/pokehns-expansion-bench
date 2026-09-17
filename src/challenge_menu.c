@@ -595,6 +595,7 @@ static const u8 *const sChoices_ExpMult[] = {
     COMPOUND_STRING("x1.0"),
     COMPOUND_STRING("x1.5"),
     COMPOUND_STRING("x2.0"),
+    COMPOUND_STRING("x0.8"),
     COMPOUND_STRING("x0.6"),
     COMPOUND_STRING("x0.0"),
 };
@@ -997,6 +998,7 @@ static const u8 *const sDesc_ExpMult[] = {
     COMPOUND_STRING("{PKMN} gain normal EXP. Points.\nStacks with HARD MODE EXP."),
     COMPOUND_STRING("{PKMN} gain 50 percent more EXP.\nPoints! Stacks with HARD MODE EXP."),
     COMPOUND_STRING("{PKMN} gain double EXP. Points!\nStacks with HARD MODE EXP."),
+    COMPOUND_STRING("{PKMN} gain 20 percent less EXP.\nPoints. Stacks with HARD MODE EXP."),
     COMPOUND_STRING("{PKMN} gain 40 percent less EXP.\nPoints. Stacks with HARD MODE EXP."),
     COMPOUND_STRING("{PKMN} gain ZERO EXP. Points!!!\nApplies to HARD MODE EXP. as well."),
 };
@@ -1068,7 +1070,7 @@ static const struct ChallengeMenuItem sTabItems_Difficulty[] = {
     [ITEM_DIFFICULTY_EXP_MULTIPLIER] = {
         .name         = COMPOUND_STRING("EXP. MULTIPLIER"),
         .descriptions = sDesc_ExpMult,
-        .numChoices   = 5,
+        .numChoices   = 6,
         .choiceNames  = sChoices_ExpMult,
     },
     [ITEM_DIFFICULTY_ITEM_PLAYER] = {
