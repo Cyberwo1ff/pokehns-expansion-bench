@@ -273,6 +273,10 @@ struct ChallengeSettings
     u8 disableMatchCall:1;
     u8 bikeMusic:1;
     u8 surfMusic:1;
+    // Fills the 2 spare bits left after surfMusic (autoRun starts the next
+    // byte), so sizeof is unchanged and no existing field shifts. Those bits
+    // were never used, so old saves read 0 (= OPTIONS_EFFECTIVENESS_ON).
+    u8 effectivenessIndicator:2;
     bool8 autoRun;
     // Randomizer
     u8 tx_Random_Chaos:1;

@@ -121,6 +121,7 @@ enum {
     ITEM_DIFFICULTY_LESS_ESCAPES,
     ITEM_DIFFICULTY_ESCAPE_ROPE_DIG,
     ITEM_DIFFICULTY_MOMS_SAVINGS,
+    ITEM_DIFFICULTY_EFFECTIVENESS,
     ITEM_DIFFICULTY_NEXT,
     ITEM_DIFFICULTY_COUNT,
 };
@@ -224,6 +225,7 @@ static const u8 sMidGameLockPolicy[TAB_COUNT * MAX_ITEMS_PER_TAB] = {
     [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_LESS_ESCAPES]   = LOCK_ONEWAY_DOWN,
     [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_ESCAPE_ROPE_DIG]= LOCK_ONEWAY_DOWN,
     [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_MOMS_SAVINGS]  = LOCK_ONEWAY_DOWN,
+    [TAB_DIFFICULTY * MAX_ITEMS_PER_TAB + ITEM_DIFFICULTY_EFFECTIVENESS] = LOCK_FREE,
     // TAB_CHALLENGES
     [TAB_CHALLENGES * MAX_ITEMS_PER_TAB + ITEM_CHALLENGES_POKECENTER]    = LOCK_ONEWAY_DOWN,
     [TAB_CHALLENGES * MAX_ITEMS_PER_TAB + ITEM_CHALLENGES_EXPENSIVE]     = LOCK_ONEWAY_DOWN,
@@ -644,6 +646,14 @@ static const u8 *const sChoices_BstEqual[] = {
     COMPOUND_STRING("500"),
 };
 
+// Indexed by OPTIONS_EFFECTIVENESS_*
+static const u8 *const sChoices_Effectiveness[] = {
+    COMPOUND_STRING("ON"),
+    COMPOUND_STRING("SEEN"),
+    COMPOUND_STRING("CAUGHT"),
+    COMPOUND_STRING("OFF"),
+};
+
 // =============================================================================
 // FEATURES descriptions + table
 // =============================================================================
@@ -1050,6 +1060,12 @@ static const u8 *const sDesc_MomsSavings[] = {
     COMPOUND_STRING("HnS: Mom saves 25 percent on top\nof your battle winnings."),
     COMPOUND_STRING("GSC: Mom saves 25 percent of your\nbattle winnings."),
 };
+static const u8 *const sDesc_Effectiveness[] = {
+    COMPOUND_STRING("Moves show how effective they are\nagainst the foe. Default."),
+    COMPOUND_STRING("Move effectiveness is only shown\nagainst {PKMN} you have seen."),
+    COMPOUND_STRING("Move effectiveness is only shown\nagainst {PKMN} you have caught."),
+    COMPOUND_STRING("Move effectiveness is never shown\nin battle."),
+};
 static const u8 *const sDesc_DifficultyNext[] = {
     COMPOUND_STRING("Continue to challenge options."),
 };
@@ -1138,6 +1154,12 @@ static const struct ChallengeMenuItem sTabItems_Difficulty[] = {
         .descriptions = sDesc_MomsSavings,
         .numChoices   = 2,
         .choiceNames  = sChoices_MomsSavingsMode,
+    },
+    [ITEM_DIFFICULTY_EFFECTIVENESS] = {
+        .name         = COMPOUND_STRING("EFFECTIVENESS"),
+        .descriptions = sDesc_Effectiveness,
+        .numChoices   = 4,
+        .choiceNames  = sChoices_Effectiveness,
     },
     [ITEM_DIFFICULTY_NEXT] = {
         .name         = COMPOUND_STRING("NEXT"),
@@ -2119,6 +2141,7 @@ static void Task_ConfirmSaveYes(u8 taskId)
     cs->tx_Challenges_LessEscapes     = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_LESS_ESCAPES);
     cs->tx_Difficulty_EscapeRopeDig   = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_ESCAPE_ROPE_DIG);
     cs->tx_Challenges_MomsSavings     = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_MOMS_SAVINGS);
+    cs->effectivenessIndicator        = *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_EFFECTIVENESS);
 
     // Challenges tab
     cs->tx_Challenges_PkmnCenter      = *GetSelectionPtr(TAB_CHALLENGES, ITEM_CHALLENGES_POKECENTER);
@@ -2328,6 +2351,7 @@ void CB2_InitChallengeMenu(void)
             *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_LESS_ESCAPES)   = cs->tx_Challenges_LessEscapes;
             *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_ESCAPE_ROPE_DIG)= cs->tx_Difficulty_EscapeRopeDig;
             *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_MOMS_SAVINGS)   = cs->tx_Challenges_MomsSavings;
+            *GetSelectionPtr(TAB_DIFFICULTY, ITEM_DIFFICULTY_EFFECTIVENESS)  = cs->effectivenessIndicator;
 
             // Challenges tab
             *GetSelectionPtr(TAB_CHALLENGES, ITEM_CHALLENGES_POKECENTER)    = cs->tx_Challenges_PkmnCenter;

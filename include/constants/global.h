@@ -228,6 +228,12 @@ enum Gender
 #define OPTIONS_EXP_MULTIPLIER_0_6X 4   // 0.6x EXP multiplier  Harder Difficulty
 #define OPTIONS_EXP_MULTIPLIER_0X   5   // 0x EXP multiplier    Hardest Difficulty
 
+// Saved raw in effectivenessIndicator, so 0 must stay ON (the pre-option behaviour)
+#define OPTIONS_EFFECTIVENESS_ON     0   // Always show the move effectiveness indicator
+#define OPTIONS_EFFECTIVENESS_SEEN   1   // Only against species the player has seen
+#define OPTIONS_EFFECTIVENESS_CAUGHT 2   // Only against species the player has caught
+#define OPTIONS_EFFECTIVENESS_OFF    3   // Never show it
+
 enum __attribute__((packed)) Direction
 {
     DIR_NONE,

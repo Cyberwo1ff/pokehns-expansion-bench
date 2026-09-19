@@ -2405,6 +2405,17 @@ static bool32 ShouldShowTypeEffectiveness(u32 targetId)
     if (B_SHOW_EFFECTIVENESS == SHOW_EFFECTIVENESS_SEEN)
         return GetSetPokedexFlag(SpeciesToNationalPokedexNum(gBattleMons[targetId].species), FLAG_GET_SEEN);
 
+    // Player's Challenge Settings choice, on top of the build-time config above
+    switch (gSaveBlock3Ptr->challengeSettings.effectivenessIndicator)
+    {
+    case OPTIONS_EFFECTIVENESS_SEEN:
+        return GetSetPokedexFlag(SpeciesToNationalPokedexNum(gBattleMons[targetId].species), FLAG_GET_SEEN);
+    case OPTIONS_EFFECTIVENESS_CAUGHT:
+        return GetSetPokedexFlag(SpeciesToNationalPokedexNum(gBattleMons[targetId].species), FLAG_GET_CAUGHT);
+    case OPTIONS_EFFECTIVENESS_OFF:
+        return FALSE;
+    }
+
     return TRUE;
 }
 
