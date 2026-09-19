@@ -138,6 +138,8 @@ void SetDefaultChallengeSettings(void)
     gSaveblock3.challengeSettings.musicOnOff = 0;
     gSaveblock3.challengeSettings.runType = 0;
     gSaveblock3.challengeSettings.brighterNights = 0;
+    gSaveblock3.challengeSettings.effectivenessIndicator = OPTIONS_EFFECTIVENESS_ON;
+    gSaveblock3.challengeSettings.enemyTypeIndicator = OPTIONS_TYPE_INDICATOR_OFF;
 
     // Challenge menu — "RECOMMENDED" defaults
     gSaveblock3.challengeSettings.tx_Mode_Modern_Moves       = 1;

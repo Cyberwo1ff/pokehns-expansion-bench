@@ -879,6 +879,7 @@ void HandleInputChooseMove(enum BattlerId battler)
                 gMultiUsePlayerCursor = gMoveSelectionCursor[battler] + 1;
 
             MoveSelectionCreateCursorAt(gMultiUsePlayerCursor, 27);
+            HideMoveTypeIcon();
             BattlePutTextOnWindow(gText_BattleSwitchWhich, B_WIN_SWITCH_PROMPT);
             gBattlerControllerFuncs[battler] = HandleMoveSwitching;
         }
@@ -1734,9 +1735,16 @@ static void MoveSelectionDisplayMoveType(enum BattlerId battler)
         struct Pokemon *mon = GetBattlerMon(battler);
         type = CheckDynamicMoveType(mon, move, battler, MON_IN_BATTLE);
     }
-    end = StringCopy(txtPtr, gTypesInfo[type].name);
 
-    PrependFontIdToFit(txtPtr, end, FONT_NORMAL, WindowWidthPx(B_WIN_MOVE_TYPE) - 25);
+    if (B_SHOW_MOVE_TYPE_ICON)
+    {
+        ShowMoveTypeIcon(type);
+    }
+    else
+    {
+        end = StringCopy(txtPtr, gTypesInfo[type].name);
+        PrependFontIdToFit(txtPtr, end, FONT_NORMAL, WindowWidthPx(B_WIN_MOVE_TYPE) - 25);
+    }
     BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_MOVE_TYPE);
 }
 
@@ -2396,6 +2404,17 @@ static bool32 ShouldShowTypeEffectiveness(u32 targetId)
 
     if (B_SHOW_EFFECTIVENESS == SHOW_EFFECTIVENESS_SEEN)
         return GetSetPokedexFlag(SpeciesToNationalPokedexNum(gBattleMons[targetId].species), FLAG_GET_SEEN);
+
+    // Player's Challenge Settings choice, on top of the build-time config above
+    switch (gSaveBlock3Ptr->challengeSettings.effectivenessIndicator)
+    {
+    case OPTIONS_EFFECTIVENESS_SEEN:
+        return GetSetPokedexFlag(SpeciesToNationalPokedexNum(gBattleMons[targetId].species), FLAG_GET_SEEN);
+    case OPTIONS_EFFECTIVENESS_CAUGHT:
+        return GetSetPokedexFlag(SpeciesToNationalPokedexNum(gBattleMons[targetId].species), FLAG_GET_CAUGHT);
+    case OPTIONS_EFFECTIVENESS_OFF:
+        return FALSE;
+    }
 
     return TRUE;
 }
