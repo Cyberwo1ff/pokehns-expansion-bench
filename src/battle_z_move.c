@@ -423,12 +423,19 @@ static void ZMoveSelectionDisplayMoveType(enum Move zMove, enum BattlerId battle
     enum Type zMoveType = GetBattleMoveType(zMove);
 
     txtPtr = StringCopy(gDisplayedStringBattle, gText_MoveInterfaceType);
-    *(txtPtr)++ = EXT_CTRL_CODE_BEGIN;
-    *(txtPtr)++ = EXT_CTRL_CODE_FONT;
-    *(txtPtr)++ = FONT_NORMAL;
+    if (B_SHOW_MOVE_TYPE_ICON)
+    {
+        ShowMoveTypeIcon(zMoveType);
+    }
+    else
+    {
+        *(txtPtr)++ = EXT_CTRL_CODE_BEGIN;
+        *(txtPtr)++ = EXT_CTRL_CODE_FONT;
+        *(txtPtr)++ = FONT_NORMAL;
 
-    end = StringCopy(txtPtr, gTypesInfo[zMoveType].name);
-    PrependFontIdToFit(txtPtr, end, FONT_NORMAL, WindowWidthPx(B_WIN_MOVE_TYPE) - 25);
+        end = StringCopy(txtPtr, gTypesInfo[zMoveType].name);
+        PrependFontIdToFit(txtPtr, end, FONT_NORMAL, WindowWidthPx(B_WIN_MOVE_TYPE) - 25);
+    }
     BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_MOVE_TYPE);
 }
 

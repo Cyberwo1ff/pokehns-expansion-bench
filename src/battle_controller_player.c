@@ -879,6 +879,7 @@ void HandleInputChooseMove(enum BattlerId battler)
                 gMultiUsePlayerCursor = gMoveSelectionCursor[battler] + 1;
 
             MoveSelectionCreateCursorAt(gMultiUsePlayerCursor, 27);
+            HideMoveTypeIcon();
             BattlePutTextOnWindow(gText_BattleSwitchWhich, B_WIN_SWITCH_PROMPT);
             gBattlerControllerFuncs[battler] = HandleMoveSwitching;
         }
@@ -1734,9 +1735,16 @@ static void MoveSelectionDisplayMoveType(enum BattlerId battler)
         struct Pokemon *mon = GetBattlerMon(battler);
         type = CheckDynamicMoveType(mon, move, battler, MON_IN_BATTLE);
     }
-    end = StringCopy(txtPtr, gTypesInfo[type].name);
 
-    PrependFontIdToFit(txtPtr, end, FONT_NORMAL, WindowWidthPx(B_WIN_MOVE_TYPE) - 25);
+    if (B_SHOW_MOVE_TYPE_ICON)
+    {
+        ShowMoveTypeIcon(type);
+    }
+    else
+    {
+        end = StringCopy(txtPtr, gTypesInfo[type].name);
+        PrependFontIdToFit(txtPtr, end, FONT_NORMAL, WindowWidthPx(B_WIN_MOVE_TYPE) - 25);
+    }
     BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_MOVE_TYPE);
 }
 

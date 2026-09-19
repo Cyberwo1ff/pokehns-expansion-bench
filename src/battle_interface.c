@@ -3440,6 +3440,120 @@ void CategoryIcons_LoadSpritesGfx(void)
     LoadSpritePalette(&gSpritePal_CategoryIcons);
 }
 
+#define MOVE_TYPE_ICON_TAG      0xE723
+#define MOVE_TYPE_ICON_GFX_SIZE (32 * 16 / 2)
+// gTypesInfo[].palette is the OBJ slot the summary screen loads each of gMoveTypes_Pal's sub-palettes into.
+#define MOVE_TYPE_ICON_FIRST_PAL_SLOT 13
+
+#define sMenuShown data[0]
+
+// Uncompressed so one type's frame can be copied in without decompressing the whole sheet.
+static const u8 ALIGNED(4) sMoveTypeIconsGfx[] = INCBIN_U8("graphics/types/move_types.4bpp");
+
+static void SpriteCB_MoveTypeIcon(struct Sprite *sprite);
+
+static const struct OamData sOamData_MoveTypeIcon =
+{
+    .shape = SPRITE_SHAPE(32x16),
+    .size = SPRITE_SIZE(32x16),
+    .priority = 0,
+};
+
+static const struct SpriteTemplate sSpriteTemplate_MoveTypeIcon =
+{
+    .tileTag = MOVE_TYPE_ICON_TAG,
+    .paletteTag = MOVE_TYPE_ICON_TAG,
+    .oam = &sOamData_MoveTypeIcon,
+    .anims = gDummySpriteAnimTable,
+    .affineAnims = gDummySpriteAffineAnimTable,
+    .callback = SpriteCB_MoveTypeIcon,
+};
+
+static void DestroyMoveTypeIcon(struct Sprite *sprite)
+{
+    DestroySprite(sprite);
+    FreeSpriteTilesByTag(MOVE_TYPE_ICON_TAG);
+    FreeSpritePaletteByTag(MOVE_TYPE_ICON_TAG);
+}
+
+// The icon sits on B_WIN_MOVE_TYPE, which is only on screen while BG0 is scrolled to the move menu.
+// Follow that, and free the icon once the menu it was shown on has closed.
+static void SpriteCB_MoveTypeIcon(struct Sprite *sprite)
+{
+    if (gBattle_BG0_Y == DISPLAY_HEIGHT * 2)
+    {
+        sprite->invisible = FALSE;
+        sprite->sMenuShown = TRUE;
+    }
+    else if (sprite->sMenuShown)
+    {
+        DestroyMoveTypeIcon(sprite);
+    }
+    else
+    {
+        sprite->invisible = TRUE;
+    }
+}
+
+static struct Sprite *GetMoveTypeIconSprite(void)
+{
+    u32 i;
+
+    for (i = 0; i < MAX_SPRITES; i++)
+    {
+        if (gSprites[i].inUse && gSprites[i].template == &sSpriteTemplate_MoveTypeIcon)
+            return &gSprites[i];
+    }
+    return NULL;
+}
+
+void ShowMoveTypeIcon(enum Type type)
+{
+    const u8 *gfx = &sMoveTypeIconsGfx[type * MOVE_TYPE_ICON_GFX_SIZE];
+    const u16 *pal = &gMoveTypes_Pal[PLTT_ID(gTypesInfo[type].palette - MOVE_TYPE_ICON_FIRST_PAL_SLOT)];
+    struct SpriteSheet sheet = {gfx, MOVE_TYPE_ICON_GFX_SIZE, MOVE_TYPE_ICON_TAG};
+    struct SpritePalette spritePal = {pal, MOVE_TYPE_ICON_TAG};
+    u32 tileStart = GetSpriteTileStartByTag(MOVE_TYPE_ICON_TAG);
+    u32 palSlot = IndexOfSpritePaletteTag(MOVE_TYPE_ICON_TAG);
+    s16 x, y;
+    u8 spriteId;
+
+    if (tileStart == 0xFFFF)
+        LoadSpriteSheet(&sheet);
+    else
+        CpuCopy32(gfx, (void *)(OBJ_VRAM0 + tileStart * TILE_SIZE_4BPP), MOVE_TYPE_ICON_GFX_SIZE);
+
+    if (palSlot == 0xFF)
+        LoadSpritePalette(&spritePal);
+    else
+        LoadPalette(pal, OBJ_PLTT_ID(palSlot), PLTT_SIZE_4BPP);
+
+    if (GetMoveTypeIconSprite() != NULL)
+        return;
+
+    // Just right of the "TYPE/" label, with BG0 scrolled to the move menu.
+    x = GetWindowAttribute(B_WIN_MOVE_TYPE, WINDOW_TILEMAP_LEFT) * 8 + GetStringWidth(FONT_NARROW, gText_MoveInterfaceType, 0) + 1 + 16;
+    y = GetWindowAttribute(B_WIN_MOVE_TYPE, WINDOW_TILEMAP_TOP) * 8 - DISPLAY_HEIGHT * 2 + 8;
+    spriteId = CreateSprite(&sSpriteTemplate_MoveTypeIcon, x, y, 0);
+    if (spriteId == MAX_SPRITES)
+    {
+        FreeSpriteTilesByTag(MOVE_TYPE_ICON_TAG);
+        FreeSpritePaletteByTag(MOVE_TYPE_ICON_TAG);
+        return;
+    }
+    gSprites[spriteId].invisible = TRUE;
+}
+
+void HideMoveTypeIcon(void)
+{
+    struct Sprite *sprite = GetMoveTypeIconSprite();
+
+    if (sprite != NULL)
+        DestroyMoveTypeIcon(sprite);
+}
+
+#undef sMenuShown
+
 static void FreeAbilityPopUpPal()
 {
     if (GetSpriteTileStartByTag(TAG_LAST_BALL_WINDOW) == 0xFFFF && GetSpriteTileStartByTag(MOVE_INFO_WINDOW_TAG) == 0xFFFF && !IsAnyAbilityPopUpActive())
