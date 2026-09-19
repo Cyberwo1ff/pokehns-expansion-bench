@@ -234,6 +234,13 @@ enum Gender
 #define OPTIONS_EFFECTIVENESS_CAUGHT 2   // Only against species the player has caught
 #define OPTIONS_EFFECTIVENESS_OFF    3   // Never show it
 
+// Saved raw in enemyTypeIndicator, so 0 must stay OFF (the pre-option behaviour).
+// Ordered by how much the player is told, which is the reverse of the list above.
+#define OPTIONS_TYPE_INDICATOR_OFF    0   // Never show the foe's type icons
+#define OPTIONS_TYPE_INDICATOR_CAUGHT 1   // Only for species the player has caught
+#define OPTIONS_TYPE_INDICATOR_SEEN   2   // Only for species the player has seen
+#define OPTIONS_TYPE_INDICATOR_ON     3   // Always show them
+
 enum __attribute__((packed)) Direction
 {
     DIR_NONE,

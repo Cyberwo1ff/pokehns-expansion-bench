@@ -232,15 +232,21 @@ const struct SpriteTemplate sSpriteTemplate_TypeIcons2 =
     .callback = SpriteCB_TypeIcon
 };
 
+// The build-time config is the master switch; the player's Challenge Settings
+// choice narrows it from there, the same way B_SHOW_EFFECTIVENESS works.
+static bool32 ShouldShowTypeIcons(void)
+{
+    if (B_SHOW_TYPES == SHOW_TYPES_NEVER)
+        return FALSE;
+
+    return gSaveBlock3Ptr->challengeSettings.enemyTypeIndicator != OPTIONS_TYPE_INDICATOR_OFF;
+}
+
 void LoadTypeIcons(enum BattlerId battler)
 {
     u32 position;
 
-    struct Pokemon* mon = GetBattlerMon(battler);
-    u32 species = GetMonData(mon, MON_DATA_SPECIES);
-
-    if (B_SHOW_TYPES == SHOW_TYPES_NEVER
-        || (B_SHOW_TYPES == SHOW_TYPES_SEEN && !GetSetPokedexFlag(SpeciesToNationalPokedexNum(species), FLAG_GET_SEEN)))
+    if (!ShouldShowTypeIcons())
         return;
 
     LoadTypeSpritesAndPalettes();
@@ -268,6 +274,11 @@ static void LoadTypeIconsPerBattler(enum BattlerId battler, u32 position)
     bool32 useDoubleBattleCoords = UseDoubleBattleCoords(battlerId);
 
     if (!IsBattlerAlive(battlerId))
+        return;
+
+    // HnS only shows the foe's types; the player already knows their own.
+    // Upstream draws both sides here.
+    if (GetBattlerSide(battlerId) != B_SIDE_OPPONENT)
         return;
 
     for (typeNum = 0; typeNum < 2; ++typeNum)
@@ -313,9 +324,12 @@ static enum Type GetMonPublicType(enum BattlerId battlerId, u32 typeNum)
     return gBattleMons[battlerId].types[typeNum];
 }
 
+// A type the player isn't entitled to see becomes TYPE_MYSTERY, so the tab still
+// appears but reads as "?" rather than vanishing.
 static bool32 ShouldHideUncaughtType(u32 species)
 {
-    if (B_SHOW_TYPES != SHOW_TYPES_CAUGHT)
+    if (B_SHOW_TYPES != SHOW_TYPES_CAUGHT
+        && gSaveBlock3Ptr->challengeSettings.enemyTypeIndicator != OPTIONS_TYPE_INDICATOR_CAUGHT)
         return FALSE;
 
     if (GetSetPokedexFlag(SpeciesToNationalPokedexNum(species), FLAG_GET_CAUGHT))
@@ -326,7 +340,8 @@ static bool32 ShouldHideUncaughtType(u32 species)
 
 static bool32 ShouldHideUnseenType(u32 species)
 {
-    if (B_SHOW_TYPES != SHOW_TYPES_SEEN)
+    if (B_SHOW_TYPES != SHOW_TYPES_SEEN
+        && gSaveBlock3Ptr->challengeSettings.enemyTypeIndicator != OPTIONS_TYPE_INDICATOR_SEEN)
         return FALSE;
 
     if (GetSetPokedexFlag(SpeciesToNationalPokedexNum(species), FLAG_GET_SEEN))
