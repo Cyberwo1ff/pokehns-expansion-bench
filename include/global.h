@@ -275,8 +275,10 @@ struct ChallengeSettings
     u8 surfMusic:1;
     // Fills the 2 spare bits left after surfMusic (autoRun starts the next
     // byte), so sizeof is unchanged and no existing field shifts. Those bits
-    // were never used, so old saves read 0 (= OPTIONS_EFFECTIVENESS_ON).
-    u8 effectivenessIndicator:2;
+    // were never used by any layout, so pre-Cv7 saves read 0 (= DEFAULT).
+    // Cv7 stored the old EFFECTIVENESS row here; the save v6 migration folds
+    // that value, and the old FOE TYPES row, into this single tier.
+    u8 battleInfoLevel:2;
     bool8 autoRun;
     // Randomizer
     u8 tx_Random_Chaos:1;
@@ -349,11 +351,13 @@ struct ChallengeSettings
     // byte tx_Features_ShinyChance already occupies, so sizeof is unchanged and
     // no existing field shifts. Old saves read it back as 0 (= normal nights).
     u8 brighterNights:1;
-    // Appended at the very end of the struct, into the last 3 spare bits of the
-    // final byte, so sizeof is unchanged and no existing field shifts. Those bits
-    // were never used by any layout, so old saves read 0 (= OPTIONS_TYPE_INDICATOR_OFF,
-    // which matches how the game behaved before this option existed).
-    u8 enemyTypeIndicator:2;
+    // Retired: this held the Cv7-only FOE TYPES row (enemyTypeIndicator) before
+    // it merged into battleInfoLevel. Kept declared so the save v6 migration can
+    // read the old value and then zero it. Once migrated, these bits are
+    // guaranteed 0, so together with the spare bit after them they are the last
+    // 3 clean bits in the struct and the best home for the next setting.
+    // Do not delete without first checking that v6 has shipped.
+    u8 reservedFoeTypes:2;
 };
 
 struct SaveBlock3

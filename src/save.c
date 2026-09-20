@@ -85,12 +85,19 @@ STATIC_ASSERT(sizeof(struct SaveBlock3) <= SAVE_BLOCK_3_CHUNK_SIZE * NUM_SECTORS
 // registeredItemHold, so growing it shifts that member and silently corrupts
 // existing saves. The size is pinned here to turn that into a build error.
 // Note the ABI: CFLAGS uses -mabi=apcs-gnu, which rounds every struct up to a
-// multiple of 4 bytes, so the 31 bytes of fields occupy 32 and the last byte is
-// trailing padding. Headroom before the size actually moves (to 36, not 33):
-// 12 spare bits scattered through the field bytes, wherever a wide bitfield had
-// to skip the tail of a partly-filled byte, plus the 8 bits of trailing padding.
-// If this fires, that headroom is gone and the new setting needs a save
-// migration rather than another field.
+// multiple of 4 bytes, but the fields already fill all 32 bytes exactly, so
+// there is no trailing padding to grow into. Measured with arm-none-eabi-gcc on
+// the project's own flags, the headroom is 11 spare bits, left wherever a wide
+// bitfield had to skip the tail of a partly-filled byte: byte 6 bit 7, byte 9
+// bit 7, byte 10 bit 7, byte 12 bits 1-7, and byte 31 bit 7. Two caveats before
+// using any of them:
+//   - Byte 12's seven bits held nuzlockeEncounterFlags[0] in upstream and
+//     pre-MomsSavings layouts, so they read back dirty and need a migration of
+//     their own to zero first.
+//   - reservedFoeTypes (byte 31 bits 5-6) is retired but still declared. The
+//     save v6 migration zeroes it, so together with byte 31 bit 7 it is the
+//     only clean multi-bit run: 3 bits at the very end of the struct.
+// The next field that does not fit pushes sizeof to 36, not 33, and fires this.
 STATIC_ASSERT(sizeof(struct ChallengeSettings) == 32, ChallengeSettingsLayoutPinned);
 STATIC_ASSERT(sizeof(struct SaveBlock2) <= SECTOR_DATA_SIZE, SaveBlock2FreeSpace);
 STATIC_ASSERT(sizeof(struct SaveBlock1) <= SECTOR_DATA_SIZE * (SECTOR_ID_SAVEBLOCK1_END - SECTOR_ID_SAVEBLOCK1_START + 1), SaveBlock1FreeSpace);
@@ -977,6 +984,30 @@ u8 LoadGameSave(u8 saveType)
         VarSet(VAR_VERMILION_CITY_SAMSON, 0);
         VarSet(VAR_ROUTE28_SCIENTIST, 0);
         gSaveBlock1Ptr->saveVersion = 5;
+    }
+
+    if (gSaveBlock1Ptr->saveVersion < 6)
+    {
+        // Cv7 shipped two separate Challenge Settings rows, EFFECTIVENESS and
+        // FOE TYPES. They have merged into the single BATTLE INFO tier, which
+        // reuses the bits EFFECTIVENESS occupied; what FOE TYPES left behind is
+        // still readable as reservedFoeTypes. Fold the pair into a tier, then
+        // clear the retired slot so a future field can trust it reads zero.
+        // Pre-Cv7 saves hold 0 in both, which was (effectiveness always, types
+        // never) and maps to DEFAULT, so this is a no-op on those.
+        struct ChallengeSettings *cs = &gSaveBlock3Ptr->challengeSettings;
+        u32 oldEffectiveness = cs->battleInfoLevel;  // 0 on, 1 seen, 2 caught, 3 off
+        u32 oldFoeTypes = cs->reservedFoeTypes;      // 0 off, 1 caught, 2 seen, 3 on
+
+        if (oldEffectiveness != 3)
+            cs->battleInfoLevel = OPTIONS_BATTLE_INFO_DEFAULT; // still being told, at least sometimes
+        else if (oldFoeTypes == 0)
+            cs->battleInfoLevel = OPTIONS_BATTLE_INFO_CLASSIC; // told nothing either way
+        else
+            cs->battleInfoLevel = OPTIONS_BATTLE_INFO_HARD;    // no readout, but types to infer from
+
+        cs->reservedFoeTypes = 0;
+        gSaveBlock1Ptr->saveVersion = 6;
     }
 
     // Add version migration steps here:
