@@ -788,7 +788,6 @@ void MapPreview_StartForestTransition(mapsec_u8_t mapsec)
     taskId = CreateTask(Task_RunMapPreviewScreenForest, 0);
     gTasks[taskId].data[2] = GetBgAttribute(0, BG_ATTR_PRIORITY);
     gTasks[taskId].data[4] = GetGpuReg(REG_OFFSET_BLDCNT);
-    gTasks[taskId].data[5] = GetGpuReg(REG_OFFSET_BLDALPHA);
     gTasks[taskId].data[3] = GetGpuReg(REG_OFFSET_DISPCNT);
     gTasks[taskId].data[6] = GetGpuReg(REG_OFFSET_WININ);
     gTasks[taskId].data[7] = GetGpuReg(REG_OFFSET_WINOUT);
@@ -958,7 +957,13 @@ static void Task_RunMapPreviewScreenForest(u8 taskId)
             SetBgAttribute(0, BG_ATTR_PRIORITY, data[2]);
             SetGpuReg(REG_OFFSET_DISPCNT, data[3]);
             SetGpuReg(REG_OFFSET_BLDCNT, data[4]);
-            SetGpuReg(REG_OFFSET_BLDALPHA, data[5]);
+            // Not the BLDALPHA this task found on entry: that is the generic
+            // BLDALPHA_BLEND(13, 7) InitOverworldGraphicsRegisters leaves behind,
+            // whereas the map's weather has since set the shadow coefficients that
+            // every semi-transparent overworld sprite - shadows, reflections, lights
+            // - is drawn with. Restoring the saved value instead left them at a blend
+            // the rest of the game would never re-apply until the weather changed.
+            Weather_ReapplyBlendCoeffs();
             SetGpuReg(REG_OFFSET_WININ, data[6]);
             SetGpuReg(REG_OFFSET_WINOUT, data[7]);
             // Now that the preview is gone, announce the map the normal way.
@@ -1020,15 +1025,6 @@ u16 MapPreview_GetDuration(mapsec_u8_t mapsec)
 }
 
 #endif // IS_FRLG || IS_HNS
-
-bool8 MapPreview_ForestFadeIsActive(void)
-{
-#if IS_HNS
-    return MapHasPreviewScreen_HandleQLState2(gMapHeader.regionMapSectionId, MPS_TYPE_FOREST);
-#else
-    return FALSE;
-#endif
-}
 
 void MapPreview_SetFlag(u16 flagId)
 {

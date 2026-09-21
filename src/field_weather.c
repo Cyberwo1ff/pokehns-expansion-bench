@@ -316,8 +316,7 @@ static void Task_WeatherMain(u8 taskId)
 
 static void None_Init(void)
 {
-    if (!MapPreview_ForestFadeIsActive())
-        Weather_SetBlendCoeffs(8, BASE_SHADOW_INTENSITY); // Indoor shadows
+    Weather_SetBlendCoeffs(8, BASE_SHADOW_INTENSITY); // Indoor shadows
     gWeatherPtr->noShadows = FALSE;
     gWeatherPtr->targetColorMapIndex = 0;
     gWeatherPtr->colorMapStepDelay = 0;
@@ -811,12 +810,7 @@ void FadeSelectedPals(u8 mode, s8 delay, u32 selectedPalettes)
         gWeatherPtr->palProcessingState = WEATHER_PAL_STATE_SCREEN_FADING_IN;
         gWeatherPtr->fadeInFirstFrame = TRUE;
         gWeatherPtr->fadeInTimer = 0;
-        // The forest map preview calls FadeInFromBlack() from inside its own task and
-        // then drives BLDALPHA itself, so re-applying the weather's stored coefficients
-        // here would leave the preview part-transparent for its whole hold. Task-scoped
-        // on purpose: this must only be skipped while that transition is actually live.
-        if (!ForestMapPreviewScreenIsRunning())
-            Weather_SetBlendCoeffs(gWeatherPtr->currBlendEVA, gWeatherPtr->currBlendEVB);
+        Weather_SetBlendCoeffs(gWeatherPtr->currBlendEVA, gWeatherPtr->currBlendEVB);
         gWeatherPtr->readyForInit = TRUE;
     }
 }
@@ -1011,9 +1005,28 @@ void Weather_SetBlendCoeffs(u8 eva, u8 evb)
     gWeatherPtr->targetBlendEVA = eva;
     gWeatherPtr->targetBlendEVB = evb;
 
+    // The MPS_TYPE_FOREST map preview cross-fades over the live map and drives
+    // BLDALPHA itself for every frame its task is alive, so while it runs only the
+    // coefficients above are recorded - Task_RunMapPreviewScreenForest applies them
+    // when it hands the register back. Skipping this function outright instead, which
+    // is what its callers used to do keyed on the map merely having a forest preview,
+    // left those maps pinned to StartWeather's opaque 16/0 seed for the whole visit.
+    if (ForestMapPreviewScreenIsRunning())
+        return;
+
     // don't update BLDALPHA if a hardware fade is on-screen
     if ((GetGpuReg(REG_OFFSET_BLDCNT) & BLDCNT_EFFECT_EFF_MASK) < BLDCNT_EFFECT_LIGHTEN)
         SetGpuReg(REG_OFFSET_BLDALPHA, BLDALPHA_BLEND(eva, evb));
+}
+
+// Hands BLDALPHA back to the weather system. The forest map preview calls this as
+// its task ends: the value it saved on entry is InitOverworldGraphicsRegisters'
+// generic BLDALPHA_BLEND(13, 7), not the shadow coefficients the map's weather set
+// up behind the preview. Writes unconditionally, because the preview task is still
+// alive - and so still owns the register by the test above - at that point.
+void Weather_ReapplyBlendCoeffs(void)
+{
+    SetGpuReg(REG_OFFSET_BLDALPHA, BLDALPHA_BLEND(gWeatherPtr->currBlendEVA, gWeatherPtr->currBlendEVB));
 }
 
 void Weather_SetTargetBlendCoeffs(u8 eva, u8 evb, int delay)
@@ -1053,7 +1066,8 @@ bool8 Weather_UpdateBlend(void)
         }
     }
 
-    SetGpuReg(REG_OFFSET_BLDALPHA, BLDALPHA_BLEND(gWeatherPtr->currBlendEVA, gWeatherPtr->currBlendEVB));
+    if (!ForestMapPreviewScreenIsRunning())
+        SetGpuReg(REG_OFFSET_BLDALPHA, BLDALPHA_BLEND(gWeatherPtr->currBlendEVA, gWeatherPtr->currBlendEVB));
 
     if (gWeatherPtr->currBlendEVA == gWeatherPtr->targetBlendEVA
      && gWeatherPtr->currBlendEVB == gWeatherPtr->targetBlendEVB)
