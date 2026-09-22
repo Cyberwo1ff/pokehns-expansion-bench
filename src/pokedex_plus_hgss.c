@@ -9045,7 +9045,11 @@ static void FillCryMeterWindowTilemapWithBg(void)
 
 // A picker (TYPE MATCHUPS / INFO tabs, switched with L/R) and a matchup page
 // (ATTACKING / DEFENDING tabs) for one type, reached from the list's start menu.
+// START holds a type; picking a second one opens a pairing page, where both charts
+// stack and ×4 / ×0.25 show up as DOUBLE rows.
 // Frame and panels are the evo screen's; the tab bars are their own tiles.
+// The row list lives alone on BG2 and scrolls with BG2VOFS, while WIN0 clips both
+// that layer and the icon sprites to the panel, so rows cut off mid-icon at its edges.
 
 #define TM_TYPE_COUNT       18
 #define TM_GRID_COLUMNS     6
@@ -9054,14 +9058,31 @@ static void FillCryMeterWindowTilemapWithBg(void)
 #define TM_GRID_DX          38
 #define TM_GRID_DY          28
 #define TM_ICONS_PER_LINE   5
-#define TM_ICON_X           64
+#define TM_ICON_X           60   // a line of five ends clear of the scrollbar lane
 #define TM_ICON_DX          34
-#define TM_ICON_DY          19
-#define TM_MAIN_WIN_X       8   // screen position of WIN_TM_MAIN, for converting layout coordinates
+#define TM_ICON_H           16
+#define TM_ICON_LINE_GAP    3
+#define TM_ROW_PAD          4    // above and below each row's tallest element
+#define TM_LIST_TOP         54   // panel interior, screen y
+#define TM_LIST_HEIGHT      92
+#define TM_LIST_ROWS_MAX    5    // a pairing's ×4 ×2 ×0.5 ×0.25 ×0
+#define TM_INFO_ROW_H       22
+#define TM_SCROLL_SPEED     2    // pixels per frame while up or down is held
+#define TM_TRACK_X          233  // the dex list's scrollbar: a 2px grey track...
+#define TM_TRACK_W          2
+#define TM_HANDLE_X         231  // ...under a 6x8 red handle with a black outline
+#define TM_HANDLE_W         6
+#define TM_HANDLE_H         8
+#define TM_TOP_PANEL_Y      2    // window row where the top panel's white interior starts
+#define TM_TOP_PANEL_H      30
+#define TM_MAIN_WIN_X       8    // screen position of WIN_TM_MAIN, for converting layout coordinates
 #define TM_MAIN_WIN_Y       48
-#define TM_TEXT_PAL         6   // BG palette for WIN_TM_MAIN: the dex text colours plus the battle symbol colours
+#define TM_LIST_WIN_Y       (TM_LIST_TOP - TM_MAIN_WIN_Y)
+#define TM_TEXT_PAL         6    // BG palette for WIN_TM_MAIN: the dex text colours plus the battle symbol colours
 #define TM_BAR_FIRST_TILE   0x60 // bar tiles load straight after tileset_menu2's 96 tiles
+#define TM_BG1_FIRST_TILE   248  // BG1's windows sit after those bar tiles (0x60-0xF7)
 #define TAG_TYPE_MATCHUPS_CURSOR 4099
+#define TM_NO_HOLD          0xFF
 #define TYPE_INFO_PALETTE_NUM_OFFSET -1 // same palette shift as the info screen's type icons
 
 enum
@@ -9069,6 +9090,7 @@ enum
     WIN_TM_TOP,
     WIN_TM_MAIN,
     WIN_TM_NAV,
+    WIN_TM_SCROLLBAR,
 };
 
 enum
@@ -9090,6 +9112,7 @@ enum
     TM_BAR_INFO,
     TM_BAR_ATTACKING,
     TM_BAR_DEFENDING,
+    TM_BAR_PAIRING,
 };
 
 struct TypeMatchupsView
@@ -9097,17 +9120,26 @@ struct TypeMatchupsView
     u8 types[TM_TYPE_COUNT];
     u8 typeCount;
     u8 cursor;
+    u8 held;        // index into types[], TM_NO_HOLD when nothing is held
     u8 tab;
     u8 page;
-    u8 iconSpriteIds[TM_TYPE_COUNT + 1]; // grid / matchup icons, then the top panel's icon
+    u8 listIconCount;
+    s16 listHeight;
+    s16 scroll;
+    s16 iconX[TM_TYPE_COUNT];
+    s16 iconY[TM_TYPE_COUNT]; // list space, so scrolling only has to move the sprites
+    u8 iconSpriteIds[TM_TYPE_COUNT + 2]; // list or grid icons, then the top panel's one or two
     u8 cursorSpriteId;
+    u8 heldSpriteId;
+    u8 pairName[32];
 };
 
-struct TypeMatchupsRow
+// One band of the list: its label (one or two lines) and the types in it
+struct TypeMatchupsListRow
 {
-    u8 top;      // screen y
-    u8 height;
-    u8 capacity; // icons that fit, five per line
+    const u8 *label[2];
+    u8 types[TM_TYPE_COUNT];
+    u8 count;
 };
 
 struct TypeMatchupsInfoRow
@@ -9139,24 +9171,22 @@ static const u8 sTypeMatchupsColor_Gray[] = {TEXT_COLOR_TRANSPARENT, 5, 3};
 static const u8 sTypeMatchupsColor_Red[] = {TEXT_COLOR_TRANSPARENT, 7, 6};
 
 static const u8 sText_TypeMatchups_Choose[] = _("Choose a type to see its matchups.");
+static const u8 sText_TypeMatchups_Stacks[] = _("Damage stacks across both types.");
 static const u8 sText_TypeMatchups_InfoTitle[] = _("What the matchups mean");
-static const u8 sText_TypeMatchups_InfoDualTypes[] = _("Dual types stack: ×4 and ×0.25 are possible.");
+static const u8 sText_TypeMatchups_InfoDualTypes[] = _("Two types stack: ×4 and ×0.25 are possible.");
 static const u8 sText_TypeMatchups_Attacking[] = _("Damage MOVES deal to each type");
 static const u8 sText_TypeMatchups_Defending[] = _("Damage POKéMON takes from each type");
 static const u8 sText_TypeMatchups_None[] = _("None");
-static const u8 sText_TypeMatchups_NavPicker[] = _("{DPAD_NONE} MOVE  {A_BUTTON} VIEW  {B_BUTTON} BACK");
-static const u8 sText_TypeMatchups_NavPage[] = _("{DPAD_LEFTRIGHT} TYPE  {B_BUTTON} BACK");
+// Hints run B, A, D-pad, then anything else
+static const u8 sText_TypeMatchups_NavPicker[] = _("{B_BUTTON} BACK  {A_BUTTON} VIEW  {DPAD_NONE} MOVE  {SELECT_BUTTON} PAIR");
+static const u8 sText_TypeMatchups_NavPickerHeld[] = _("{B_BUTTON} BACK  {A_BUTTON} VIEW  {DPAD_NONE} MOVE  {SELECT_BUTTON} PAIR  {START_BUTTON} CLEAR");
+static const u8 sText_TypeMatchups_NavPage[] = _("{B_BUTTON} BACK  {DPAD_LEFTRIGHT} TYPE");
+static const u8 sText_TypeMatchups_NavPageScroll[] = _("{B_BUTTON} BACK  {DPAD_LEFTRIGHT} TYPE  {DPAD_UPDOWN} SCROLL");
+static const u8 sText_TypeMatchups_NavScroll[] = _("{B_BUTTON} BACK  {DPAD_UPDOWN} SCROLL");
 static const u8 sText_TypeMatchups_NavBack[] = _("{B_BUTTON} BACK");
 
 // Super effective / not very effective / no effect, top to bottom
-static const struct TypeMatchupsRow sTypeMatchupsRows[] =
-{
-    {.top = 56,  .height = 24, .capacity = TM_ICONS_PER_LINE},
-    {.top = 81,  .height = 40, .capacity = TM_ICONS_PER_LINE * 2},
-    {.top = 122, .height = 24, .capacity = TM_ICONS_PER_LINE},
-};
-
-static const u8 *const sTypeMatchupsLabels[][ARRAY_COUNT(sTypeMatchupsRows)][2] =
+static const u8 *const sTypeMatchupsLabels[][3][2] =
 {
     [TM_PAGE_ATTACKING] =
     {
@@ -9172,9 +9202,26 @@ static const u8 *const sTypeMatchupsLabels[][ARRAY_COUNT(sTypeMatchupsRows)][2] 
     },
 };
 
+// ×4, ×2, ×0.5, ×0.25, ×0: the multipliers themselves are left to the INFO tab
+static const u8 *const sTypeMatchupsPairLabels[TM_LIST_ROWS_MAX][2] =
+{
+    {COMPOUND_STRING("DOUBLE"), COMPOUND_STRING("WEAK TO")},
+    {COMPOUND_STRING("WEAK TO"), NULL},
+    {COMPOUND_STRING("RESISTS"), NULL},
+    {COMPOUND_STRING("DOUBLE"), COMPOUND_STRING("RESISTS")},
+    {COMPOUND_STRING("IMMUNE"), NULL},
+};
+
 // Symbols are the battle move menu's effectiveness indicator (MoveSelectionDisplayMoveEffectiveness)
 static const struct TypeMatchupsInfoRow sTypeMatchupsInfoRows[] =
 {
+    {
+        .symbol = COMPOUND_STRING("{CIRCLE_DOT}"),
+        .symbolColors = {TEXT_COLOR_TRANSPARENT, 8, 9},
+        .multiplier = COMPOUND_STRING("×4"),
+        .phrase = COMPOUND_STRING("DOUBLE WEAK TO"),
+        .meaning = COMPOUND_STRING("Both of its types are weak to it."),
+    },
     {
         .symbol = COMPOUND_STRING("{CIRCLE_DOT}"),
         .symbolColors = {TEXT_COLOR_TRANSPARENT, 8, 9},
@@ -9197,6 +9244,13 @@ static const struct TypeMatchupsInfoRow sTypeMatchupsInfoRows[] =
         .meaning = COMPOUND_STRING("Half damage. Target RESISTS it."),
     },
     {
+        .symbol = COMPOUND_STRING("{TRIANGLE}"),
+        .symbolColors = {TEXT_COLOR_TRANSPARENT, 12, 13},
+        .multiplier = COMPOUND_STRING("×0.25"),
+        .phrase = COMPOUND_STRING("DOUBLE RESISTS"),
+        .meaning = COMPOUND_STRING("Both of its types resist it."),
+    },
+    {
         .symbol = COMPOUND_STRING("{BIG_MULT_X}"),
         .symbolColors = {TEXT_COLOR_TRANSPARENT, 2, 4},
         .multiplier = COMPOUND_STRING("×0"),
@@ -9207,15 +9261,16 @@ static const struct TypeMatchupsInfoRow sTypeMatchupsInfoRows[] =
 
 static const struct WindowTemplate sTypeMatchups_WindowTemplates[] =
 {
+    // The top panel, footer and scrollbar sit on BG1 so that BG2 can scroll on its own
     [WIN_TM_TOP] =
     {
-        .bg = 2,
+        .bg = 1,
         .tilemapLeft = 1,
         .tilemapTop = 2,
         .width = 28,
         .height = 4,
         .paletteNum = 0,
-        .baseBlock = 1,
+        .baseBlock = TM_BG1_FIRST_TILE,
     },
     [WIN_TM_MAIN] =
     {
@@ -9223,19 +9278,29 @@ static const struct WindowTemplate sTypeMatchups_WindowTemplates[] =
         .tilemapLeft = 1,
         .tilemapTop = 6,
         .width = 28,
-        .height = 12,
+        .height = 18, // taller than the panel: the overflow is what scrolls into view
         .paletteNum = TM_TEXT_PAL,
-        .baseBlock = 1 + 28 * 4,
+        .baseBlock = 1,
     },
     [WIN_TM_NAV] =
     {
-        .bg = 2,
+        .bg = 1,
         .tilemapLeft = 0,
         .tilemapTop = 18,
-        .width = 20,
+        .width = 30, // full width: four hints do not fit the stock footer strip
         .height = 2,
         .paletteNum = 15,
-        .baseBlock = 1 + 28 * 4 + 28 * 12,
+        .baseBlock = TM_BG1_FIRST_TILE + 28 * 4,
+    },
+    [WIN_TM_SCROLLBAR] =
+    {
+        .bg = 1,
+        .tilemapLeft = 28,
+        .tilemapTop = 6,
+        .width = 2,
+        .height = 13,
+        .paletteNum = 0,
+        .baseBlock = TM_BG1_FIRST_TILE + 28 * 4 + 30 * 2,
     },
     DUMMY_WIN_TEMPLATE
 };
@@ -9249,6 +9314,24 @@ static const struct OamData sOamData_TypeMatchupsCursor =
     .shape = SPRITE_SHAPE(64x32),
     .size = SPRITE_SIZE(64x32),
     .priority = 1,
+};
+
+static const union AnimCmd sAnim_TypeMatchupsCursor_Moving[] =
+{
+    ANIMCMD_FRAME(0, 0),
+    ANIMCMD_END,
+};
+
+static const union AnimCmd sAnim_TypeMatchupsCursor_Held[] =
+{
+    ANIMCMD_FRAME(32, 0), // second 64x32 frame in the sheet: 8 tiles across by 4 down
+    ANIMCMD_END,
+};
+
+static const union AnimCmd *const sAnims_TypeMatchupsCursor[] =
+{
+    sAnim_TypeMatchupsCursor_Moving,
+    sAnim_TypeMatchupsCursor_Held,
 };
 
 static const struct SpriteSheet sTypeMatchupsCursorSpriteSheet =
@@ -9265,7 +9348,7 @@ static const struct SpriteTemplate sTypeMatchupsCursorSpriteTemplate =
     .tileTag = TAG_TYPE_MATCHUPS_CURSOR,
     .paletteTag = TAG_DEX_INTERFACE,
     .oam = &sOamData_TypeMatchupsCursor,
-    .anims = gDummySpriteAnimTable,
+    .anims = sAnims_TypeMatchupsCursor,
     .images = NULL,
     .affineAnims = gDummySpriteAffineAnimTable,
     .callback = SpriteCB_TypeMatchupsCursor,
@@ -9274,7 +9357,9 @@ static const struct SpriteTemplate sTypeMatchupsCursorSpriteTemplate =
 static void Task_LoadTypeMatchupsScreen(u8 taskId);
 static void Task_HandleTypeMatchupsPickerInput(u8 taskId);
 static void Task_HandleTypeMatchupsPageInput(u8 taskId);
+static void Task_HandleTypeMatchupsPairInput(u8 taskId);
 static void Task_ExitTypeMatchups(u8 taskId);
+static void TypeMatchups_DrawPicker(void);
 
 static u8 LoadTypeMatchupsScreen(void)
 {
@@ -9329,12 +9414,28 @@ static void TypeMatchups_Print(u8 windowId, u8 fontId, u8 x, u8 y, const u8 *col
     AddTextPrinterParameterized4(windowId, fontId, x, y, 0, 0, colors, TEXT_SKIP_DRAW, str);
 }
 
-static void TypeMatchups_DrawSeparator(u32 screenY)
+// y is a WIN_TM_MAIN row, not a screen row: the list scrolls under the panel
+static void TypeMatchups_DrawSeparator(u32 winY)
 {
     u32 x;
 
     for (x = 0; x < 224; x += 2)
-        FillWindowPixelRect(WIN_TM_MAIN, PIXEL_FILL(3), x, screenY - TM_MAIN_WIN_Y, 1, 1);
+        FillWindowPixelRect(WIN_TM_MAIN, PIXEL_FILL(3), x, winY, 1, 1);
+}
+
+// The frame's red footer strip stops at x143, which is too narrow for four hints. Its middle
+// tiles repeat, so the rest of the row is filled in and the end cap moved to the screen edge.
+static void TypeMatchups_WidenFooter(void)
+{
+    u16 *tilemap = GetBgTilemapBuffer(3);
+    u32 col;
+
+    // The last column is left alone: it holds the panel's own bottom-right corner
+    for (col = 17; col <= 28; col++)
+    {
+        tilemap[18 * 32 + col] = (col == 28) ? 0x4B : 0x4A;
+        tilemap[19 * 32 + col] = (col == 28) ? 0x53 : (((col - 1) % 3 == 0) ? 0x51 : 0x52);
+    }
 }
 
 static void TypeMatchups_LoadBar(u32 bar)
@@ -9350,9 +9451,25 @@ static void TypeMatchups_ShowIcon(u32 slot, u32 type, s32 x, s32 y)
 
     StartSpriteAnim(sprite, type);
     sprite->oam.paletteNum = gTypesInfo[type].palette + TYPE_INFO_PALETTE_NUM_OFFSET;
+    sprite->oam.priority = 1; // behind BG1, so the top panel hides whatever scrolls past it
     sprite->x = x + 16;
     sprite->y = y + 8;
     sprite->invisible = FALSE;
+}
+
+// The top panel's own icons have to sit in front of that same BG1 panel
+static void TypeMatchups_ShowPanelIcon(u32 slot, u32 type, s32 x, s32 y)
+{
+    TypeMatchups_ShowIcon(slot, type, x, y);
+    gSprites[sTypeMatchups->iconSpriteIds[slot]].oam.priority = 0;
+}
+
+// The panel's interior is opaque, so a row scrolling above the list is covered rather than
+// drawn over the header. Rows 0-1 are left clear for the frame's own border.
+static void TypeMatchups_ClearTopPanel(void)
+{
+    FillWindowPixelBuffer(WIN_TM_TOP, PIXEL_FILL(0));
+    FillWindowPixelRect(WIN_TM_TOP, PIXEL_FILL(1), 0, TM_TOP_PANEL_Y, 224, TM_TOP_PANEL_H);
 }
 
 static void TypeMatchups_HideSprites(void)
@@ -9362,14 +9479,165 @@ static void TypeMatchups_HideSprites(void)
     for (i = 0; i < ARRAY_COUNT(sTypeMatchups->iconSpriteIds); i++)
         gSprites[sTypeMatchups->iconSpriteIds[i]].invisible = TRUE;
     gSprites[sTypeMatchups->cursorSpriteId].sShown = FALSE;
+    gSprites[sTypeMatchups->heldSpriteId].invisible = TRUE;
+}
+
+// Built like the dex list's own scrollbar: a grey track with a small red handle riding it
+static void TypeMatchups_DrawScrollbar(void)
+{
+    u32 y, handleY;
+    s32 limit = sTypeMatchups->listHeight - TM_LIST_HEIGHT;
+
+    FillWindowPixelBuffer(WIN_TM_SCROLLBAR, PIXEL_FILL(0));
+    if (limit > 0)
+    {
+        // The bar stops a pixel short of the panel at both ends, as the dex list's does
+        FillWindowPixelRect(WIN_TM_SCROLLBAR, PIXEL_FILL(5), TM_TRACK_X - 224, TM_LIST_WIN_Y + 1,
+                            TM_TRACK_W, TM_LIST_HEIGHT - 2);
+        handleY = TM_LIST_WIN_Y + 1 + (TM_LIST_HEIGHT - 2 - TM_HANDLE_H) * sTypeMatchups->scroll / limit;
+        for (y = 0; y < TM_HANDLE_H; y++)
+        {
+            if (y == 0 || y == TM_HANDLE_H - 1)
+            {
+                FillWindowPixelRect(WIN_TM_SCROLLBAR, PIXEL_FILL(15), TM_HANDLE_X - 224, handleY + y,
+                                    TM_HANDLE_W, 1);
+            }
+            else
+            {
+                FillWindowPixelRect(WIN_TM_SCROLLBAR, PIXEL_FILL(15), TM_HANDLE_X - 224, handleY + y, 1, 1);
+                FillWindowPixelRect(WIN_TM_SCROLLBAR, PIXEL_FILL(7), TM_HANDLE_X - 224 + 1, handleY + y,
+                                    TM_HANDLE_W - 2, 1);
+                FillWindowPixelRect(WIN_TM_SCROLLBAR, PIXEL_FILL(15), TM_HANDLE_X - 224 + TM_HANDLE_W - 1,
+                                    handleY + y, 1, 1);
+            }
+        }
+    }
+    CopyWindowToVram(WIN_TM_SCROLLBAR, COPYWIN_GFX);
+}
+
+static void TypeMatchups_ApplyScroll(void)
+{
+    u32 i;
+
+    SetGpuReg(REG_OFFSET_BG2VOFS, sTypeMatchups->scroll);
+    for (i = 0; i < sTypeMatchups->listIconCount; i++)
+    {
+        struct Sprite *sprite = &gSprites[sTypeMatchups->iconSpriteIds[i]];
+
+        sprite->x = sTypeMatchups->iconX[i] + 16;
+        sprite->y = TM_LIST_TOP + sTypeMatchups->iconY[i] - sTypeMatchups->scroll + 8;
+    }
+    TypeMatchups_DrawScrollbar();
+}
+
+static void TypeMatchups_ResetScroll(void)
+{
+    sTypeMatchups->scroll = 0;
+    sTypeMatchups->listHeight = 0;
+    sTypeMatchups->listIconCount = 0;
+    SetGpuReg(REG_OFFSET_BG2VOFS, 0);
+    TypeMatchups_DrawScrollbar();
+}
+
+static bool32 TypeMatchups_HandleScroll(void)
+{
+    s32 limit = sTypeMatchups->listHeight - TM_LIST_HEIGHT;
+    s32 scroll = sTypeMatchups->scroll;
+
+    if (limit <= 0)
+        return FALSE;
+    if (JOY_HELD(DPAD_DOWN))
+        scroll += TM_SCROLL_SPEED;
+    else if (JOY_HELD(DPAD_UP))
+        scroll -= TM_SCROLL_SPEED;
+    if (scroll < 0)
+        scroll = 0;
+    else if (scroll > limit)
+        scroll = limit;
+    if (scroll == sTypeMatchups->scroll)
+        return FALSE;
+    sTypeMatchups->scroll = scroll;
+    TypeMatchups_ApplyScroll();
+    return TRUE;
+}
+
+static u32 TypeMatchups_IconLines(const struct TypeMatchupsListRow *row)
+{
+    return (row->count == 0) ? 1 : (row->count + TM_ICONS_PER_LINE - 1) / TM_ICONS_PER_LINE;
+}
+
+static u32 TypeMatchups_RowHeight(const struct TypeMatchupsListRow *row)
+{
+    u32 lines = TypeMatchups_IconLines(row);
+    u32 icons = TM_ICON_H * lines + TM_ICON_LINE_GAP * (lines - 1);
+    u32 label = 10 * ((row->label[1] != NULL) ? 2 : 1) + 2;
+
+    return max(icons, label) + TM_ROW_PAD;
+}
+
+static void TypeMatchups_DrawList(const struct TypeMatchupsListRow *rows, u32 rowCount)
+{
+    u32 i, r, listY = 0, slot = 0;
+
+    FillWindowPixelBuffer(WIN_TM_MAIN, PIXEL_FILL(0));
+    for (r = 0; r < rowCount; r++)
+    {
+        const struct TypeMatchupsListRow *row = &rows[r];
+        u32 height = TypeMatchups_RowHeight(row);
+        u32 lines = TypeMatchups_IconLines(row);
+        u32 labelLines = (row->label[1] != NULL) ? 2 : 1;
+        u32 labelY = listY + (height - (10 * labelLines + 2)) / 2;
+        u32 iconY = listY + (height - (TM_ICON_H * lines + TM_ICON_LINE_GAP * (lines - 1))) / 2;
+
+        if (r != 0)
+            TypeMatchups_DrawSeparator(TM_LIST_WIN_Y + listY - 1);
+        for (i = 0; i < labelLines; i++)
+        {
+            TypeMatchups_Print(WIN_TM_MAIN, FONT_SMALL, 0, TM_LIST_WIN_Y + labelY + 10 * i,
+                               sTypeMatchupsColor_Black, row->label[i]);
+        }
+        if (row->count == 0)
+        {
+            TypeMatchups_Print(WIN_TM_MAIN, FONT_NORMAL, TM_ICON_X - TM_MAIN_WIN_X,
+                               TM_LIST_WIN_Y + listY + (height - 14) / 2 - 1,
+                               sTypeMatchupsColor_Gray, sText_TypeMatchups_None);
+        }
+        for (i = 0; i < row->count; i++)
+        {
+            sTypeMatchups->iconX[slot] = TM_ICON_X + (i % TM_ICONS_PER_LINE) * TM_ICON_DX;
+            sTypeMatchups->iconY[slot] = iconY + (i / TM_ICONS_PER_LINE) * (TM_ICON_H + TM_ICON_LINE_GAP);
+            TypeMatchups_ShowIcon(slot, row->types[i], sTypeMatchups->iconX[slot], 0);
+            slot++;
+        }
+        listY += height + 1;
+    }
+    sTypeMatchups->listIconCount = slot;
+    sTypeMatchups->listHeight = listY - 1;
+    sTypeMatchups->scroll = 0;
+    TypeMatchups_ApplyScroll();
 }
 
 static void TypeMatchups_DrawTopPanel(u32 type, const u8 *description)
 {
-    FillWindowPixelBuffer(WIN_TM_TOP, PIXEL_FILL(0));
+    TypeMatchups_ClearTopPanel();
     TypeMatchups_Print(WIN_TM_TOP, FONT_NORMAL, 40, 2, sTypeMatchupsColor_Black, gTypesInfo[type].name);
     TypeMatchups_Print(WIN_TM_TOP, FONT_SMALL, 40, 17, sTypeMatchupsColor_Gray, description);
-    TypeMatchups_ShowIcon(TM_TYPE_COUNT, type, 10, 26);
+    TypeMatchups_ShowPanelIcon(TM_TYPE_COUNT, type, 10, 26);
+}
+
+// Both icons side by side, then "FIRE/STEEL"
+static void TypeMatchups_DrawPairPanel(u32 first, u32 second, const u8 *description)
+{
+    u8 *end;
+
+    TypeMatchups_ClearTopPanel();
+    end = StringCopy(sTypeMatchups->pairName, gTypesInfo[first].name);
+    *end++ = CHAR_SLASH;
+    StringCopy(end, gTypesInfo[second].name);
+    TypeMatchups_Print(WIN_TM_TOP, FONT_NORMAL, 82, 2, sTypeMatchupsColor_Black, sTypeMatchups->pairName);
+    TypeMatchups_Print(WIN_TM_TOP, FONT_SMALL, 2, 21, sTypeMatchupsColor_Gray, description);
+    TypeMatchups_ShowPanelIcon(TM_TYPE_COUNT, first, 10, 20);
+    TypeMatchups_ShowPanelIcon(TM_TYPE_COUNT + 1, second, 46, 20);
 }
 
 static void TypeMatchups_DrawNav(const u8 *str)
@@ -9385,17 +9653,57 @@ static void TypeMatchups_CopyWindowsToVram(void)
     CopyWindowToVram(WIN_TM_NAV, COPYWIN_GFX);
 }
 
+// The grid cell a type sits in, for the cursor and held frames
+static void TypeMatchups_FrameAt(u8 spriteId, u32 index)
+{
+    struct Sprite *sprite = &gSprites[spriteId];
+
+    // The 64x32 frame sprites have their 38x20 frame in the top-left corner
+    sprite->x = TM_GRID_X + (index % TM_GRID_COLUMNS) * TM_GRID_DX - 3 + 32;
+    sprite->y = TM_GRID_Y + (index / TM_GRID_COLUMNS) * TM_GRID_DY - 2 + 16;
+}
+
+static void TypeMatchups_UpdatePickerPanel(void)
+{
+    u32 held = sTypeMatchups->held;
+    u32 cursor = sTypeMatchups->cursor;
+
+    if (held != TM_NO_HOLD && held != cursor)
+    {
+        TypeMatchups_DrawPairPanel(sTypeMatchups->types[held], sTypeMatchups->types[cursor],
+                                   sText_TypeMatchups_Stacks);
+    }
+    else
+    {
+        TypeMatchups_DrawTopPanel(sTypeMatchups->types[cursor], sText_TypeMatchups_Choose);
+        gSprites[sTypeMatchups->iconSpriteIds[TM_TYPE_COUNT + 1]].invisible = TRUE;
+    }
+    TypeMatchups_DrawNav(held == TM_NO_HOLD ? sText_TypeMatchups_NavPicker : sText_TypeMatchups_NavPickerHeld);
+    CopyWindowToVram(WIN_TM_TOP, COPYWIN_GFX);
+    CopyWindowToVram(WIN_TM_NAV, COPYWIN_GFX);
+}
+
+static void TypeMatchups_UpdateHeldFrame(void)
+{
+    struct Sprite *sprite = &gSprites[sTypeMatchups->heldSpriteId];
+
+    if (sTypeMatchups->held == TM_NO_HOLD)
+    {
+        sprite->invisible = TRUE;
+    }
+    else
+    {
+        TypeMatchups_FrameAt(sTypeMatchups->heldSpriteId, sTypeMatchups->held);
+        sprite->invisible = FALSE;
+    }
+}
+
 static void TypeMatchups_UpdatePickerCursor(void)
 {
-    u32 i = sTypeMatchups->cursor;
     struct Sprite *cursor = &gSprites[sTypeMatchups->cursorSpriteId];
 
-    TypeMatchups_DrawTopPanel(sTypeMatchups->types[i], sText_TypeMatchups_Choose);
-    CopyWindowToVram(WIN_TM_TOP, COPYWIN_GFX);
-
-    // The 64x32 cursor sprite has its 38x20 frame in its top-left corner
-    cursor->x = TM_GRID_X + (i % TM_GRID_COLUMNS) * TM_GRID_DX - 3 + 32;
-    cursor->y = TM_GRID_Y + (i / TM_GRID_COLUMNS) * TM_GRID_DY - 2 + 16;
+    TypeMatchups_UpdatePickerPanel();
+    TypeMatchups_FrameAt(sTypeMatchups->cursorSpriteId, sTypeMatchups->cursor);
     cursor->sBlinkTimer = 0; // restart the blink so the frame shows straight away
     cursor->sShown = TRUE;
 }
@@ -9404,23 +9712,27 @@ static void TypeMatchups_DrawInfo(void)
 {
     u32 i;
 
-    FillWindowPixelBuffer(WIN_TM_TOP, PIXEL_FILL(0));
+    TypeMatchups_ClearTopPanel();
     TypeMatchups_Print(WIN_TM_TOP, FONT_NORMAL, 2, 2, sTypeMatchupsColor_Black, sText_TypeMatchups_InfoTitle);
     TypeMatchups_Print(WIN_TM_TOP, FONT_SMALL, 2, 17, sTypeMatchupsColor_Gray, sText_TypeMatchups_InfoDualTypes);
 
+    FillWindowPixelBuffer(WIN_TM_MAIN, PIXEL_FILL(0));
     for (i = 0; i < ARRAY_COUNT(sTypeMatchupsInfoRows); i++)
     {
         const struct TypeMatchupsInfoRow *row = &sTypeMatchupsInfoRows[i];
-        u32 y = 54 + i * 23;
+        u32 y = TM_LIST_WIN_Y + i * TM_INFO_ROW_H;
 
         if (i != 0)
             TypeMatchups_DrawSeparator(y - 1);
-        y -= TM_MAIN_WIN_Y;
         TypeMatchups_Print(WIN_TM_MAIN, FONT_NARROW, 0, y + 3, row->symbolColors, row->symbol);
         TypeMatchups_Print(WIN_TM_MAIN, FONT_NORMAL, 14, y + 3, sTypeMatchupsColor_Red, row->multiplier);
-        TypeMatchups_Print(WIN_TM_MAIN, FONT_SMALL, 44, y, sTypeMatchupsColor_Black, row->phrase);
-        TypeMatchups_Print(WIN_TM_MAIN, FONT_SMALL, 44, y + 10, sTypeMatchupsColor_Gray, row->meaning);
+        TypeMatchups_Print(WIN_TM_MAIN, FONT_SMALL, 54, y, sTypeMatchupsColor_Black, row->phrase);
+        TypeMatchups_Print(WIN_TM_MAIN, FONT_SMALL, 54, y + 10, sTypeMatchupsColor_Gray, row->meaning);
     }
+    sTypeMatchups->listIconCount = 0;
+    sTypeMatchups->listHeight = TM_INFO_ROW_H * ARRAY_COUNT(sTypeMatchupsInfoRows);
+    sTypeMatchups->scroll = 0;
+    TypeMatchups_ApplyScroll();
 }
 
 static void TypeMatchups_DrawPicker(void)
@@ -9428,9 +9740,10 @@ static void TypeMatchups_DrawPicker(void)
     u32 i;
 
     TypeMatchups_HideSprites();
-    FillWindowPixelBuffer(WIN_TM_MAIN, PIXEL_FILL(0));
     if (sTypeMatchups->tab == TM_TAB_TYPES)
     {
+        TypeMatchups_ResetScroll();
+        FillWindowPixelBuffer(WIN_TM_MAIN, PIXEL_FILL(0));
         TypeMatchups_LoadBar(TM_BAR_TYPES);
         for (i = 0; i < sTypeMatchups->typeCount; i++)
         {
@@ -9438,26 +9751,30 @@ static void TypeMatchups_DrawPicker(void)
                                   TM_GRID_X + (i % TM_GRID_COLUMNS) * TM_GRID_DX,
                                   TM_GRID_Y + (i / TM_GRID_COLUMNS) * TM_GRID_DY);
         }
+        TypeMatchups_UpdateHeldFrame();
         TypeMatchups_UpdatePickerCursor();
-        TypeMatchups_DrawNav(sText_TypeMatchups_NavPicker);
     }
     else
     {
         TypeMatchups_LoadBar(TM_BAR_INFO);
         TypeMatchups_DrawInfo();
-        TypeMatchups_DrawNav(sText_TypeMatchups_NavBack);
+        TypeMatchups_DrawNav(sText_TypeMatchups_NavScroll);
     }
     TypeMatchups_CopyWindowsToVram();
 }
 
-static void TypeMatchups_DrawPage(void)
+static u32 TypeMatchups_BuildSingleRows(struct TypeMatchupsListRow *rows)
 {
+    u32 i, row;
     u32 type = sTypeMatchups->types[sTypeMatchups->cursor];
     u32 page = sTypeMatchups->page;
-    u8 lists[ARRAY_COUNT(sTypeMatchupsRows)][TM_TYPE_COUNT];
-    u8 counts[ARRAY_COUNT(sTypeMatchupsRows)] = {0};
-    u32 i, row, slot = 0;
 
+    for (i = 0; i < 3; i++)
+    {
+        rows[i].label[0] = sTypeMatchupsLabels[page][i][0];
+        rows[i].label[1] = sTypeMatchupsLabels[page][i][1];
+        rows[i].count = 0;
+    }
     for (i = 0; i < sTypeMatchups->typeCount; i++)
     {
         u32 other = sTypeMatchups->types[i];
@@ -9472,49 +9789,79 @@ static void TypeMatchups_DrawPage(void)
             row = 1;
         else
             continue;
+        rows[row].types[rows[row].count++] = other;
+    }
+    return 3;
+}
+
+// Both types' charts multiplied together, so ×4 and ×0.25 get rows of their own
+static u32 TypeMatchups_BuildPairRows(struct TypeMatchupsListRow *rows)
+{
+    u8 lists[TM_LIST_ROWS_MAX][TM_TYPE_COUNT];
+    u8 counts[TM_LIST_ROWS_MAX] = {0};
+    u32 i, row, used = 0;
+    u32 first = sTypeMatchups->types[sTypeMatchups->held];
+    u32 second = sTypeMatchups->types[sTypeMatchups->cursor];
+
+    for (i = 0; i < sTypeMatchups->typeCount; i++)
+    {
+        u32 other = sTypeMatchups->types[i];
+        uq4_12_t modifier = uq4_12_multiply(GetTypeModifier(other, first), GetTypeModifier(other, second));
+
+        if (modifier >= UQ_4_12(4.0))
+            row = 0;
+        else if (modifier >= UQ_4_12(2.0))
+            row = 1;
+        else if (modifier == UQ_4_12(0.0))
+            row = 4;
+        else if (modifier <= UQ_4_12(0.25))
+            row = 3;
+        else if (modifier <= UQ_4_12(0.5))
+            row = 2;
+        else
+            continue;
         lists[row][counts[row]++] = other;
     }
+    for (row = 0; row < TM_LIST_ROWS_MAX; row++)
+    {
+        if (counts[row] == 0)
+            continue;
+        rows[used].label[0] = sTypeMatchupsPairLabels[row][0];
+        rows[used].label[1] = sTypeMatchupsPairLabels[row][1];
+        rows[used].count = counts[row];
+        for (i = 0; i < counts[row]; i++)
+            rows[used].types[i] = lists[row][i];
+        used++;
+    }
+    return used;
+}
+
+static void TypeMatchups_DrawPage(void)
+{
+    struct TypeMatchupsListRow rows[3];
+    u32 page = sTypeMatchups->page;
 
     TypeMatchups_HideSprites();
     TypeMatchups_LoadBar(page == TM_PAGE_ATTACKING ? TM_BAR_ATTACKING : TM_BAR_DEFENDING);
-    TypeMatchups_DrawTopPanel(type, page == TM_PAGE_ATTACKING ? sText_TypeMatchups_Attacking : sText_TypeMatchups_Defending);
-    FillWindowPixelBuffer(WIN_TM_MAIN, PIXEL_FILL(0));
+    TypeMatchups_DrawTopPanel(sTypeMatchups->types[sTypeMatchups->cursor],
+                              page == TM_PAGE_ATTACKING ? sText_TypeMatchups_Attacking : sText_TypeMatchups_Defending);
+    TypeMatchups_DrawList(rows, TypeMatchups_BuildSingleRows(rows));
+    TypeMatchups_DrawNav(sTypeMatchups->listHeight > TM_LIST_HEIGHT
+                         ? sText_TypeMatchups_NavPageScroll : sText_TypeMatchups_NavPage);
+    TypeMatchups_CopyWindowsToVram();
+}
 
-    for (row = 0; row < ARRAY_COUNT(sTypeMatchupsRows); row++)
-    {
-        const struct TypeMatchupsRow *layout = &sTypeMatchupsRows[row];
-        const u8 *const *label = sTypeMatchupsLabels[page][row];
-        u32 labelLines = (label[1] != NULL) ? 2 : 1;
-        u32 y = layout->top + (layout->height - 2 - 10 * labelLines) / 2 - TM_MAIN_WIN_Y;
-        u32 count = min(counts[row], layout->capacity);
+static void TypeMatchups_DrawPairPage(void)
+{
+    struct TypeMatchupsListRow rows[TM_LIST_ROWS_MAX];
 
-        if (row != 0)
-            TypeMatchups_DrawSeparator(layout->top - 1);
-        TypeMatchups_Print(WIN_TM_MAIN, FONT_SMALL, 0, y, sTypeMatchupsColor_Black, label[0]);
-        if (label[1] != NULL)
-            TypeMatchups_Print(WIN_TM_MAIN, FONT_SMALL, 0, y + 10, sTypeMatchupsColor_Black, label[1]);
-
-        if (count == 0)
-        {
-            TypeMatchups_Print(WIN_TM_MAIN, FONT_NORMAL, TM_ICON_X - TM_MAIN_WIN_X,
-                               layout->top + (layout->height - 14) / 2 - 1 - TM_MAIN_WIN_Y,
-                               sTypeMatchupsColor_Gray, sText_TypeMatchups_None);
-        }
-        else
-        {
-            u32 iconLines = (count + TM_ICONS_PER_LINE - 1) / TM_ICONS_PER_LINE;
-            u32 top = layout->top + (layout->height - (16 + TM_ICON_DY * (iconLines - 1))) / 2;
-
-            for (i = 0; i < count; i++)
-            {
-                TypeMatchups_ShowIcon(slot++, lists[row][i],
-                                      TM_ICON_X + (i % TM_ICONS_PER_LINE) * TM_ICON_DX,
-                                      top + (i / TM_ICONS_PER_LINE) * TM_ICON_DY);
-            }
-        }
-    }
-
-    TypeMatchups_DrawNav(sText_TypeMatchups_NavPage);
+    TypeMatchups_HideSprites();
+    TypeMatchups_LoadBar(TM_BAR_PAIRING);
+    TypeMatchups_DrawPairPanel(sTypeMatchups->types[sTypeMatchups->held],
+                               sTypeMatchups->types[sTypeMatchups->cursor], sText_TypeMatchups_Defending);
+    TypeMatchups_DrawList(rows, TypeMatchups_BuildPairRows(rows));
+    TypeMatchups_DrawNav(sTypeMatchups->listHeight > TM_LIST_HEIGHT
+                         ? sText_TypeMatchups_NavScroll : sText_TypeMatchups_NavBack);
     TypeMatchups_CopyWindowsToVram();
 }
 
@@ -9546,6 +9893,27 @@ static void TypeMatchups_CreateSprites(void)
     LoadSpriteSheet(&sTypeMatchupsCursorSpriteSheet);
     LoadSpritePalette(&sInterfaceSpritePalette[HGSS_DARK_MODE]);
     sTypeMatchups->cursorSpriteId = CreateSprite(&sTypeMatchupsCursorSpriteTemplate, 0, 0, 1);
+
+    // The held type keeps a steady frame, so it never reads as the blinking cursor
+    sTypeMatchups->heldSpriteId = CreateSprite(&sTypeMatchupsCursorSpriteTemplate, 0, 0, 2);
+    gSprites[sTypeMatchups->heldSpriteId].callback = SpriteCallbackDummy;
+    gSprites[sTypeMatchups->heldSpriteId].invisible = TRUE;
+    StartSpriteAnim(&gSprites[sTypeMatchups->heldSpriteId], 1);
+}
+
+static void TypeMatchups_SetUpWindows(void)
+{
+    // WIN0 is the list panel and WIN1 only the top panel's interior. BG2 (the list) is kept
+    // out of WIN1 and out of the area beyond both, and sprites draw only inside the two
+    // windows, so a row scrolling past either edge of the panel is cut off cleanly. Inside
+    // WIN1 the top panel's own opaque background hides whatever scrolls up behind it.
+    SetGpuReg(REG_OFFSET_WIN0H, WIN_RANGE(3, 237));
+    SetGpuReg(REG_OFFSET_WIN0V, WIN_RANGE(TM_LIST_TOP, TM_LIST_TOP + TM_LIST_HEIGHT));
+    SetGpuReg(REG_OFFSET_WIN1H, WIN_RANGE(0, DISPLAY_WIDTH));
+    SetGpuReg(REG_OFFSET_WIN1V, WIN_RANGE(18, 48));
+    SetGpuReg(REG_OFFSET_WININ, WININ_WIN0_ALL
+                              | WININ_WIN1_BG0 | WININ_WIN1_BG1 | WININ_WIN1_BG3 | WININ_WIN1_OBJ | WININ_WIN1_CLR);
+    SetGpuReg(REG_OFFSET_WINOUT, WINOUT_WIN01_BG0 | WINOUT_WIN01_BG1 | WINOUT_WIN01_BG3 | WINOUT_WIN01_CLR);
 }
 
 static void Task_LoadTypeMatchupsScreen(u8 taskId)
@@ -9569,9 +9937,11 @@ static void Task_LoadTypeMatchupsScreen(u8 taskId)
             PutWindowTilemap(WIN_TM_TOP);
             PutWindowTilemap(WIN_TM_MAIN);
             PutWindowTilemap(WIN_TM_NAV);
+            PutWindowTilemap(WIN_TM_SCROLLBAR);
             DecompressAndLoadBgGfxUsingHeap(3, sPokedexPlusHGSS_Menu_2_Gfx, 0, 0, 0);
             DecompressAndLoadBgGfxUsingHeap(3, sTypeMatchups_BarGfx, 0, TM_BAR_FIRST_TILE, 0);
             CopyToBgTilemapBuffer(3, sPokedexPlusHGSS_ScreenEvolution_Tilemap_PE, 0, 0);
+            TypeMatchups_WidenFooter();
             LoadPokedexBgPalette(FALSE);
             LoadTypeMatchupsTextPalette();
             gMain.state = 1;
@@ -9579,9 +9949,11 @@ static void Task_LoadTypeMatchupsScreen(u8 taskId)
         break;
     case 1:
         sTypeMatchups = AllocZeroed(sizeof(*sTypeMatchups));
+        sTypeMatchups->held = TM_NO_HOLD;
         TypeMatchups_BuildTypeList();
         TypeMatchups_CreateSprites();
         TypeMatchups_DrawPicker();
+        CopyBgTilemapBufferToVram(1);
         CopyBgTilemapBufferToVram(2);
         gMain.state++;
         break;
@@ -9593,9 +9965,10 @@ static void Task_LoadTypeMatchupsScreen(u8 taskId)
         SetGpuReg(REG_OFFSET_BLDCNT, 0);
         SetGpuReg(REG_OFFSET_BLDALPHA, 0);
         SetGpuReg(REG_OFFSET_BLDY, 0);
-        SetGpuReg(REG_OFFSET_DISPCNT, DISPCNT_OBJ_1D_MAP | DISPCNT_OBJ_ON);
+        TypeMatchups_SetUpWindows();
+        SetGpuReg(REG_OFFSET_DISPCNT, DISPCNT_OBJ_1D_MAP | DISPCNT_OBJ_ON | DISPCNT_WIN0_ON | DISPCNT_WIN1_ON);
         HideBg(0);
-        HideBg(1);
+        ShowBg(1);
         ShowBg(2);
         ShowBg(3);
         gMain.state++;
@@ -9656,14 +10029,48 @@ static void Task_HandleTypeMatchupsPickerInput(u8 taskId)
         return;
     }
     if (sTypeMatchups->tab != TM_TAB_TYPES)
+    {
+        TypeMatchups_HandleScroll();
         return;
+    }
+
+    // SELECT only ever picks a type to pair with; START is what lets go of it
+    if (JOY_NEW(SELECT_BUTTON))
+    {
+        sTypeMatchups->held = sTypeMatchups->cursor;
+        TypeMatchups_UpdateHeldFrame();
+        TypeMatchups_UpdatePickerPanel();
+        PlaySE(SE_SELECT);
+        return;
+    }
+    if (JOY_NEW(START_BUTTON) && sTypeMatchups->held != TM_NO_HOLD)
+    {
+        sTypeMatchups->held = TM_NO_HOLD;
+        TypeMatchups_UpdateHeldFrame();
+        TypeMatchups_UpdatePickerPanel();
+        PlaySE(SE_SELECT);
+        return;
+    }
 
     if (JOY_NEW(A_BUTTON))
     {
-        sTypeMatchups->page = TM_PAGE_ATTACKING;
-        TypeMatchups_DrawPage();
-        PlaySE(SE_PIN);
-        gTasks[taskId].func = Task_HandleTypeMatchupsPageInput;
+        if (sTypeMatchups->held == sTypeMatchups->cursor)
+        {
+            PlaySE(SE_FAILURE); // a type cannot pair with itself; the hold stays put
+        }
+        else if (sTypeMatchups->held != TM_NO_HOLD)
+        {
+            TypeMatchups_DrawPairPage();
+            PlaySE(SE_PIN);
+            gTasks[taskId].func = Task_HandleTypeMatchupsPairInput;
+        }
+        else
+        {
+            sTypeMatchups->page = TM_PAGE_ATTACKING;
+            TypeMatchups_DrawPage();
+            PlaySE(SE_PIN);
+            gTasks[taskId].func = Task_HandleTypeMatchupsPageInput;
+        }
         return;
     }
 
@@ -9709,6 +10116,22 @@ static void Task_HandleTypeMatchupsPageInput(u8 taskId)
         TypeMatchups_DrawPage();
         PlaySE(SE_SELECT);
     }
+    else
+    {
+        TypeMatchups_HandleScroll();
+    }
+}
+
+static void Task_HandleTypeMatchupsPairInput(u8 taskId)
+{
+    if (JOY_NEW(B_BUTTON))
+    {
+        TypeMatchups_DrawPicker();
+        PlaySE(SE_SELECT);
+        gTasks[taskId].func = Task_HandleTypeMatchupsPickerInput;
+        return;
+    }
+    TypeMatchups_HandleScroll();
 }
 
 static void Task_ExitTypeMatchups(u8 taskId)
@@ -9721,9 +10144,15 @@ static void Task_ExitTypeMatchups(u8 taskId)
     for (i = 0; i < ARRAY_COUNT(sTypeMatchups->iconSpriteIds); i++)
         DestroySprite(&gSprites[sTypeMatchups->iconSpriteIds[i]]);
     DestroySprite(&gSprites[sTypeMatchups->cursorSpriteId]);
+    DestroySprite(&gSprites[sTypeMatchups->heldSpriteId]);
     FreeSpriteTilesByTag(gSpriteSheet_MoveTypes.tag);
     FreeSpriteTilesByTag(TAG_TYPE_MATCHUPS_CURSOR);
     FREE_AND_SET_NULL(sTypeMatchups);
+    SetGpuReg(REG_OFFSET_BG2VOFS, 0);
+    SetGpuReg(REG_OFFSET_WIN0H, 0);
+    SetGpuReg(REG_OFFSET_WIN0V, 0);
+    SetGpuReg(REG_OFFSET_WIN1H, 0);
+    SetGpuReg(REG_OFFSET_WIN1V, 0);
     FreeWindowAndBgBuffers();
     DestroyTask(taskId);
 }
