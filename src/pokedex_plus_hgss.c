@@ -3125,6 +3125,7 @@ static u32 CreatePokedexMonSprite(u16 num, s16 x, s16 y)
 }
 
 #define sIsDownArrow data[1]
+#define sHiddenByStartMenu data[0]
 #define LIST_RIGHT_SIDE_TEXT_X 204
 #define LIST_RIGHT_SIDE_TEXT_X_OFFSET 15
 #define LIST_RIGHT_SIDE_TEXT_Y_OFFSET 13
@@ -3445,7 +3446,29 @@ static void SpriteCB_EndMoveMonForInfoScreen(struct Sprite *sprite)
 static void SpriteCB_SeenOwnInfo(struct Sprite *sprite)
 {
     if (sPokedexView->currentPage != PAGE_MAIN && sPokedexView->currentPage != PAGE_SEARCH_RESULTS)
+    {
         DestroySprite(sprite);
+        return;
+    }
+
+    // These sprites sit on top of BG0, which is where the start menu lives, so the National
+    // SEEN/OWN counters would otherwise show through it. The menu tilemap starts at BG row 20,
+    // so with BG0 scrolled by menuY its top edge is at screen DISPLAY_HEIGHT - menuY: hide
+    // anything the menu has slid up past. Only unhide what we hid, or suppressed leading
+    // zeros would reappear.
+    if (sprite->y > DISPLAY_HEIGHT - sPokedexView->menuY)
+    {
+        if (!sprite->invisible)
+        {
+            sprite->invisible = TRUE;
+            sprite->sHiddenByStartMenu = TRUE;
+        }
+    }
+    else if (sprite->sHiddenByStartMenu)
+    {
+        sprite->invisible = FALSE;
+        sprite->sHiddenByStartMenu = FALSE;
+    }
 }
 
 static void SpriteCB_MoveMonForInfoScreen(struct Sprite *sprite)
@@ -9145,6 +9168,7 @@ static void CreateSearchParameterScrollArrows(u8 taskId)
 
 #undef sTaskId
 #undef sIsDownArrow
+#undef sHiddenByStartMenu
 
 static void EraseAndPrintSearchTextBox(const u8 *str)
 {
