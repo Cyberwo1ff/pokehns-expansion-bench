@@ -192,7 +192,7 @@ static const u8 sText_Stats_FAST[] = _("FAST");
 static const u8 sText_Stats_SLOW[] = _("SLOW");
 static const u8 sText_Stats_ContestHeart[] = _("H");
 static const u8 sText_Stats_Minus[] = _("-");
-static const u8 sText_Stats_eggGroup[] = _("EGG G1:");
+static const u8 sText_Stats_eggGroup[] = _("EGG GROUP:");
 static const u8 sText_Stats_eggGroup_Groups[] = _("{STR_VAR_1}/{STR_VAR_2}");
 static const u8 sText_Stats_eggGroup_MONSTER[] = _("MONSTER");
 static const u8 sText_Stats_eggGroup_WATER_1[] = _("WATER {CIRCLE_1}");
@@ -1387,9 +1387,9 @@ static const struct WindowTemplate sStatsScreen_WindowTemplates[] =
         .tilemapLeft = 0,
         .tilemapTop = 6,
         .width = 12,
-        .height = 8,
+        .height = 9,
         .paletteNum = 0,
-        .baseBlock = 1 + 60 + 40 + 48,
+        .baseBlock = 1 + 60 + 40 + 48 + 96 + 24 + 72 + 72 + 36 + 144,
     },
     [WIN_STATS_NAVIGATION_BUTTONS] =
     {
@@ -5807,7 +5807,7 @@ static void PrintStatsScreen_Left(u8 taskId)
     u8 base_x_offset = 70;
     u8 base_x_first_row = 23;
     u8 base_x_second_row = 43;
-    u8 base_y_offset = 11;
+    u8 base_y_offset = 10;
     u8 base_i = 0;
     u8 base_y = 5;
     u32 align_x;
@@ -6237,14 +6237,17 @@ static void PrintStatsScreen_Left(u8 taskId)
                 break;
             }
             StringExpandPlaceholders(gStringVar3, sText_Stats_eggGroup_Groups);
-            align_x = GetStringRightAlignXOffset(0, gStringVar3, total_x);
-            PrintStatsScreenTextSmall(WIN_STATS_LEFT, gStringVar3, base_x, base_y + base_y_offset*base_i);
         }
         else
         {
-            align_x = GetStringRightAlignXOffset(0, gStringVar1, total_x);
-            PrintStatsScreenTextSmall(WIN_STATS_LEFT, gStringVar1, base_x, base_y + base_y_offset*base_i);
+            StringCopy(gStringVar3, gStringVar1);
         }
+
+        // The panel is only 93px wide and a dual group such as HUMANE/AMORPHOUS already fills
+        // it, so the heading takes its own line with the groups underneath
+        PrintStatsScreenTextSmall(WIN_STATS_LEFT, sText_Stats_eggGroup, base_x, base_y + base_y_offset*base_i);
+        base_i++;
+        PrintStatsScreenTextSmall(WIN_STATS_LEFT, gStringVar3, base_x, base_y + base_y_offset*base_i);
         base_i++;
     }
 }
