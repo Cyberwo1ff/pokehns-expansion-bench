@@ -277,7 +277,7 @@ static const u32 sPokedexPlusHGSS_ScreenSize_Tilemap[] = INCBIN_U32("graphics/po
 static const u32 sPokedexPlusHGSS_ScreenSearchHoenn_Tilemap[] = INCBIN_U32("graphics/pokedex/hgss/tilemap_search_screen_hoenn.bin.smolTM");
 static const u32 sPokedexPlusHGSS_ScreenSearchNational_Tilemap[] = INCBIN_U32("graphics/pokedex/hgss/tilemap_search_screen_national.bin.smolTM");
 
-#define SCROLLING_MON_X 146// For modifying behaviour of the stats screen move list
+#define SCROLLING_MON_X 146
 
 // For scrolling search parameter
 #define MAX_SEARCH_PARAM_ON_SCREEN   6
@@ -5206,7 +5206,7 @@ static void Task_HandleStatsScreenInput(u8 taskId)
             sPokedexView->moveSelected = 0;
         else
             return;
-        
+
         PlaySE(SE_SELECT);
         FillWindowPixelBuffer(WIN_STATS_MOVES_TOP, PIXEL_FILL(0));
         PrintStatsScreen_DestroyMoveItemIcon(taskId);
@@ -5382,7 +5382,7 @@ static void PrintStatsScreen_Moves_Top(u8 taskId)
         PrintStatsScreenTextSmall(WIN_STATS_MOVES_TOP, sText_Stats_Move, moves_x + 113, moves_y + 14);
         item = ITEM_LUCKY_EGG;
     }
-    else 
+    else
     {
         StringCopy(gStringVar4, gText_CommunicationError);
     }
@@ -5808,7 +5808,7 @@ static void PrintStatsScreen_Left(u8 taskId)
             else
                 PrintStatsScreenTextSmall(WIN_STATS_LEFT, sText_Stats_CatchRate_Easy, base_x + x_offset_column, base_y + base_y_offset*base_i);
         }
-        
+
         base_i++;
 
         //Growth rate
