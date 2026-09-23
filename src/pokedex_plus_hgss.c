@@ -222,6 +222,8 @@ static const u8 sText_EVO_Buttons_Decapped[] = _("{DPAD_UPDOWN}Evos  {A_BUTTON}C
 static const u8 sText_EVO_Buttons_PE[] = _("{DPAD_UPDOWN}EVOs  {A_BUTTON}CHECK  {START_BUTTON}FORMs");
 static const u8 sText_EVO_Buttons_Decapped_PE[] = _("{DPAD_UPDOWN}Evos  {A_BUTTON}Check  {START_BUTTON}Forms");
 static const u8 sText_EVO_Name[] = _("{STR_VAR_3}:");
+static const u8 sText_EVO_UnknownName[] = _("??????");
+static const u8 sText_EVO_UnknownLetters[] = _("ABCDEFGHIJ"); // one per MAX_UNKNOWN_EVO_SPECIES
 static const u8 sText_EVO_PreEvo[] = _("{STR_VAR_1} evolves from {STR_VAR_2}");
 static const u8 sText_EVO_PreEvo_PE_Mega[] = _("{STR_VAR_1} Mega Evolves with {STR_VAR_2}");
 static const u8 sText_EVO_LEVEL_SILCOON[] = _("{LV}{UP_ARROW} to {STR_VAR_2}, Silcoon persona");
@@ -286,6 +288,10 @@ static const u32 sPokedexPlusHGSS_ScreenSize_Tilemap[] = INCBIN_U32("graphics/po
 static const u32 sPokedexPlusHGSS_ScreenSearchHoenn_Tilemap[] = INCBIN_U32("graphics/pokedex/hgss/tilemap_search_screen_hoenn.bin.smolTM");
 static const u32 sPokedexPlusHGSS_ScreenSearchNational_Tilemap[] = INCBIN_U32("graphics/pokedex/hgss/tilemap_search_screen_national.bin.smolTM");
 
+// Stands in for the icon of a mon the player hasn't seen. Drawn in mon icon palette 0.
+static const u8 sPokedexPlusHGSS_UnseenMonIcon_Gfx[] = INCBIN_U8("graphics/pokedex/hgss/icon_unseen.4bpp");
+#define UNSEEN_MON_ICON_PAL_INDEX 0
+
 #define SCROLLING_MON_X 146
 
 // For scrolling search parameter
@@ -294,6 +300,14 @@ static const u32 sPokedexPlusHGSS_ScreenSearchNational_Tilemap[] = INCBIN_U32("g
 
 #define MAX_MONS_ON_SCREEN 4
 #define MAX_EVOLUTION_ICONS 8
+
+// Each distinct unseen mon on the evolution screen is tagged "<tier><letter>", e.g.
+// "2A-??????". The tier is how many evolution steps it sits from the mon whose page
+// this is, and the letter separates the different mons within one tier, so that two
+// methods reaching the same unknown mon can be told apart from two that reach
+// different ones without the tags implying an order they have to be done in.
+#define MAX_UNKNOWN_EVO_SPECIES 10
+#define UNKNOWN_EVO_NAME_SIZE   11 // 2 digits + letter + "-" + "??????" + EOS
 
 #define LIST_SCROLL_STEP         16
 
@@ -399,6 +413,11 @@ struct EvoScreenData
     u8 arrowSpriteId;
     bool8 isMega;
     u32 arrowSpriteDist[10];
+    u16 unknownSpecies[MAX_UNKNOWN_EVO_SPECIES];
+    u8 unknownTier[MAX_UNKNOWN_EVO_SPECIES];
+    u8 unknownLetter[MAX_UNKNOWN_EVO_SPECIES];
+    u8 numUnknownSpecies;
+    u8 unknownName[UNKNOWN_EVO_NAME_SIZE];
 };
 
 struct FromScreenData
@@ -6414,6 +6433,13 @@ static void ResetEvoScreenDataStruct(void)
         sPokedexView->sEvoScreenData.seen[i] = 0;
     }
 
+    sPokedexView->sEvoScreenData.numUnknownSpecies = 0;
+    for (i = 0; i < MAX_UNKNOWN_EVO_SPECIES; i++)
+    {
+        sPokedexView->sEvoScreenData.unknownSpecies[i] = SPECIES_NONE;
+        sPokedexView->sEvoScreenData.unknownTier[i] = 0;
+        sPokedexView->sEvoScreenData.unknownLetter[i] = 0;
+    }
 }
 
 static void GetSeenFlagTargetSpecies(void)
@@ -6656,31 +6682,127 @@ static void Task_HandleEvolutionScreenInput(u8 taskId)
     }
 }
 
-static void HandleTargetSpeciesPrintText(u32 targetSpecies, u32 base_x, u32 base_y, u32 base_y_offset, u32 base_i, u32 numLines)
+// A mon the player has never seen is shown on the evolution screen as a question
+// mark rather than by name or icon, so browsing the screen can't spoil the rest of
+// a line the player hasn't met yet.
+static bool32 IsEvoScreenSpeciesSeen(u32 species)
 {
-    bool32 seen = GetSetPokedexFlag(SpeciesToNationalPokedexNum(targetSpecies), FLAG_GET_SEEN);
-    u32 fontId = GetSpeciesNameFontId(GetSpeciesNameWidthInChars(GetSpeciesName(targetSpecies)));
+    return GetSetPokedexFlag(SpeciesToNationalPokedexNum(species), FLAG_GET_SEEN);
+}
 
-    if (seen || !HGSS_HIDE_UNSEEN_EVOLUTION_NAMES)
-        StringCopy(gStringVar3, GetSpeciesName(targetSpecies)); //evolution mon name
-    else
-        StringCopy(gStringVar3, gText_ThreeQuestionMarks); //show questionmarks instead of name
+// Returns the index of an already-tagged unknown mon, or numUnknownSpecies if absent.
+static u32 FindUnknownEvoSpecies(u32 species)
+{
+    u32 i;
+
+    for (i = 0; i < sPokedexView->sEvoScreenData.numUnknownSpecies; i++)
+    {
+        if (sPokedexView->sEvoScreenData.unknownSpecies[i] == species)
+            break;
+    }
+    return i;
+}
+
+// Builds "<tier><letter>-??????" into the shared buffer, e.g. "2A-??????".
+static const u8 *FormatUnknownEvoName(u32 index)
+{
+    u8 *end = ConvertIntToDecimalStringN(sPokedexView->sEvoScreenData.unknownName,
+                                         sPokedexView->sEvoScreenData.unknownTier[index],
+                                         STR_CONV_MODE_LEFT_ALIGN, 2);
+    *end++ = sText_EVO_UnknownLetters[sPokedexView->sEvoScreenData.unknownLetter[index]];
+    end = StringCopy(end, gText_OneDash);
+    StringCopy(end, sText_EVO_UnknownName);
+    return sPokedexView->sEvoScreenData.unknownName;
+}
+
+// For an evolution target: tags it on first sight with its tier (how many steps it
+// sits from the mon whose page this is) and a letter separating the different mons
+// within that tier. Same tag means the same mon, so two methods that arrive at one
+// mon match, while siblings in a tier differ by letter rather than by number - which
+// would otherwise read as if they had to be done in order.
+// The returned buffer is overwritten by the next call, so use it before calling again.
+static const u8 *GetEvoScreenTargetName(u32 species, u32 tier)
+{
+    u32 i, j;
+    u8 letter = 0;
+
+    if (!HGSS_HIDE_UNSEEN_EVOLUTION_NAMES || IsEvoScreenSpeciesSeen(species))
+        return GetSpeciesName(species);
+
+    i = FindUnknownEvoSpecies(species);
+
+    if (i >= MAX_UNKNOWN_EVO_SPECIES) // out of tags, fall back to a bare mask
+        return sText_EVO_UnknownName;
+
+    if (i == sPokedexView->sEvoScreenData.numUnknownSpecies)
+    {
+        for (j = 0; j < sPokedexView->sEvoScreenData.numUnknownSpecies; j++)
+        {
+            if (sPokedexView->sEvoScreenData.unknownTier[j] == tier)
+                letter++;
+        }
+        sPokedexView->sEvoScreenData.unknownSpecies[i] = species;
+        sPokedexView->sEvoScreenData.unknownTier[i] = tier;
+        sPokedexView->sEvoScreenData.unknownLetter[i] = letter;
+        sPokedexView->sEvoScreenData.numUnknownSpecies++;
+    }
+
+    return FormatUnknownEvoName(i);
+}
+
+// For a mon that isn't a node in the forward evolution tree - a pre-evolution, or one
+// named by a method's conditions. It borrows the tag if that mon is already tagged as
+// an evolution target, and otherwise just masks the name.
+static const u8 *GetEvoScreenSpeciesName(u32 species)
+{
+    u32 i;
+
+    if (!HGSS_HIDE_UNSEEN_EVOLUTION_NAMES || IsEvoScreenSpeciesSeen(species))
+        return GetSpeciesName(species);
+
+    i = FindUnknownEvoSpecies(species);
+    if (i < sPokedexView->sEvoScreenData.numUnknownSpecies)
+        return FormatUnknownEvoName(i);
+
+    return sText_EVO_UnknownName;
+}
+
+static u8 CreateEvoScreenMonIcon(u32 species, s16 x, s16 y)
+{
+    u32 personality;
+
+    if (HGSS_HIDE_UNSEEN_EVOLUTION_ICONS && !IsEvoScreenSpeciesSeen(species))
+    {
+        if (IndexOfSpritePaletteTag(gMonIconPaletteTable[UNSEEN_MON_ICON_PAL_INDEX].tag) == 0xFF)
+            LoadSpritePalette(&gMonIconPaletteTable[UNSEEN_MON_ICON_PAL_INDEX]);
+        return CreateMonIconCustomTiles(sPokedexPlusHGSS_UnseenMonIcon_Gfx, UNSEEN_MON_ICON_PAL_INDEX, SpriteCB_MonIcon, x, y, 4);
+    }
+
+    personality = GetPokedexMonPersonality(species);
+    LoadMonIconPalettePersonality(species, personality); //Loads pallete for current mon
+    return CreateMonIcon(species, SpriteCB_MonIcon, x, y, 4, personality);
+}
+
+static void HandleTargetSpeciesPrintText(u32 targetSpecies, u32 tier, u32 base_x, u32 base_y, u32 base_y_offset, u32 base_i, u32 numLines)
+{
+    const u8 *name = GetEvoScreenTargetName(targetSpecies, tier);
+    u32 fontId = GetSpeciesNameFontId(GetSpeciesNameWidthInChars(name));
+
+    StringCopy(gStringVar3, name); //evolution mon name
     StringExpandPlaceholders(gStringVar3, sText_EVO_Name); //evolution mon name
     PrintInfoScreenTextSmall(gStringVar3, fontId, base_x, base_y + base_y_offset*base_i + numLines); //evolution mon name
 }
 
 static void HandleTargetSpeciesPrintIcon(u8 taskId, u16 targetSpecies, u8 base_i, u8 iterations)
 {
-    u32 personality = GetPokedexMonPersonality(targetSpecies);
-    LoadMonIconPalettePersonality(targetSpecies, personality); //Loads pallete for current mon
 #if RANDOMIZER_AVAILABLE
     if (iterations > 6 || RandomizerFeatureEnabled(RANDOMIZE_EVO_METHODS) || RandomizerFeatureEnabled(RANDOMIZE_EVOLUTIONS)) // Print icons closer to each other if there are many evolutions
 #else
     if (iterations > 6) // Print icons closer to each other if there are many evolutions
 #endif
-        gTasks[taskId].data[5+base_i] = CreateMonIcon(targetSpecies, SpriteCB_MonIcon, 45 + 26*base_i, 31, 4, personality);
+        gTasks[taskId].data[5+base_i] = CreateEvoScreenMonIcon(targetSpecies, 45 + 26*base_i, 31);
     else
-        gTasks[taskId].data[5+base_i] = CreateMonIcon(targetSpecies, SpriteCB_MonIcon, 50 + 32*base_i, 31, 4, personality);
+        gTasks[taskId].data[5+base_i] = CreateEvoScreenMonIcon(targetSpecies, 50 + 32*base_i, 31);
     gSprites[gTasks[taskId].data[5+base_i]].oam.priority = 0;
 }
 
@@ -6698,8 +6820,6 @@ static void CreateCaughtBallEvolutionScreen(u16 targetSpecies, u8 x, u8 y, u16 u
 
 static void HandlePreEvolutionSpeciesPrint(u8 taskId, u16 preSpecies, u16 species, u8 base_x, u8 base_y, u8 base_y_offset, u8 base_i)
 {
-    bool8 seen = GetSetPokedexFlag(SpeciesToNationalPokedexNum(preSpecies), FLAG_GET_SEEN);
-
     StringCopy(gStringVar1, GetSpeciesName(species)); //evolution mon name
 
     if (sPokedexView->sEvoScreenData.isMega)
@@ -6707,10 +6827,7 @@ static void HandlePreEvolutionSpeciesPrint(u8 taskId, u16 preSpecies, u16 specie
     else
     {
 
-        if (seen || !HGSS_HIDE_UNSEEN_EVOLUTION_NAMES)
-            StringCopy(gStringVar2, GetSpeciesName(preSpecies)); //evolution mon name
-        else
-            StringCopy(gStringVar2, gText_ThreeQuestionMarks); //show questionmarks instead of name
+        StringCopy(gStringVar2, GetEvoScreenSpeciesName(preSpecies)); //evolution mon name
 
         StringExpandPlaceholders(gStringVar3, sText_EVO_PreEvo); //evolution mon name
 
@@ -6720,9 +6837,7 @@ static void HandlePreEvolutionSpeciesPrint(u8 taskId, u16 preSpecies, u16 specie
 
     if (base_i < 3)
     {
-        u32 personality = GetPokedexMonPersonality(preSpecies);
-        LoadMonIconPalettePersonality(preSpecies, personality); //Loads pallete for current mon
-        gTasks[taskId].data[5+base_i] = CreateMonIcon(preSpecies, SpriteCB_MonIcon, 18 + 32*base_i, 31, 4, personality); //Create pokemon sprite
+        gTasks[taskId].data[5+base_i] = CreateEvoScreenMonIcon(preSpecies, 18 + 32*base_i, 31); //Create pokemon sprite
         gSprites[gTasks[taskId].data[5+base_i]].oam.priority = 0;
     }
 }
@@ -6983,7 +7098,7 @@ static void PrintEvolutionTargetSpeciesAndMethod(u8 taskId, u16 species, u8 dept
 
         bool32 isAlcremie = IsSpeciesAlcremie(targetSpecies);
 
-        u32 speciesNameWidthInChars = GetSpeciesNameWidthInChars(GetSpeciesName(targetSpecies));
+        u32 speciesNameWidthInChars = GetSpeciesNameWidthInChars(GetEvoScreenTargetName(targetSpecies, depth + 1));
         u32 speciesNameCharWidth = GetFontAttribute(GetSpeciesNameFontId(speciesNameWidthInChars), FONTATTR_MAX_LETTER_WIDTH);
 
         u32 speciesNameWidth = (speciesNameWidthInChars * speciesNameCharWidth);
@@ -7011,7 +7126,7 @@ static void PrintEvolutionTargetSpeciesAndMethod(u8 taskId, u16 species, u8 dept
         sPokedexView->sEvoScreenData.numAllEvolutions += 1;
 
         CreateCaughtBallEvolutionScreen(targetSpecies, base_x + depth_x*depth-9, base_y + base_y_offset*(*depth_i) + numLines, 0);
-        HandleTargetSpeciesPrintText(targetSpecies, base_x + depth_x*depth, base_y, base_y_offset, *depth_i, numLines); //evolution mon name
+        HandleTargetSpeciesPrintText(targetSpecies, depth + 1, base_x + depth_x*depth, base_y, base_y_offset, *depth_i, numLines); //evolution mon name
 
         bool32 caught = GetSetPokedexFlag(SpeciesToNationalPokedexNum(targetSpecies), FLAG_GET_CAUGHT);
         if (HGSS_HIDE_UNOWNED_EVOLUTION_METHODS == TRUE && !caught)
@@ -7046,7 +7161,7 @@ static void PrintEvolutionTargetSpeciesAndMethod(u8 taskId, u16 species, u8 dept
                 break;
             case EVO_SPLIT_FROM_EVO:
                 StringCopy(gStringVar4, COMPOUND_STRING("Splits from "));
-                StringAppend(gStringVar4, GetSpeciesName(evolutions[i].param)); //mon name
+                StringAppend(gStringVar4, GetEvoScreenSpeciesName(evolutions[i].param)); //mon name
                 break;
             case EVO_BATTLE_END:
                 StringExpandPlaceholders(gStringVar4, COMPOUND_STRING("End battle"));
@@ -7159,7 +7274,7 @@ static void PrintEvolutionTargetSpeciesAndMethod(u8 taskId, u16 species, u8 dept
                     break;
                 // Gen 4
                 case IF_SPECIES_IN_PARTY:
-                    StringAppend(gStringVar4, GetSpeciesName(evolutions[i].params[j].arg1)); //mon name
+                    StringAppend(gStringVar4, GetEvoScreenSpeciesName(evolutions[i].params[j].arg1)); //mon name
                     StringAppend(gStringVar4, COMPOUND_STRING(" in party"));
                     break;
                 case IF_IN_MAPSEC:
@@ -7179,7 +7294,7 @@ static void PrintEvolutionTargetSpeciesAndMethod(u8 taskId, u16 species, u8 dept
                 // Gen 5
                 case IF_TRADE_PARTNER_SPECIES:
                     StringAppend(gStringVar4, COMPOUND_STRING("traded with "));
-                    StringAppend(gStringVar4, GetSpeciesName(evolutions[i].params[j].arg1));
+                    StringAppend(gStringVar4, GetEvoScreenSpeciesName(evolutions[i].params[j].arg1));
                     break;
                 // Gen 6
                 case IF_TYPE_IN_PARTY:
@@ -7263,7 +7378,7 @@ static void PrintEvolutionTargetSpeciesAndMethod(u8 taskId, u16 species, u8 dept
                     ConvertIntToDecimalStringN(gStringVar2, evolutions[i].params[j].arg3, STR_CONV_MODE_LEFT_ALIGN, 3);
                     StringAppend(gStringVar4, gStringVar2);
                     StringAppend(gStringVar4, COMPOUND_STRING(" "));
-                    StringAppend(gStringVar4, GetSpeciesName(evolutions[i].params[j].arg1));
+                    StringAppend(gStringVar4, GetEvoScreenSpeciesName(evolutions[i].params[j].arg1));
                     StringAppend(gStringVar4, COMPOUND_STRING(" that hold "));
                     CopyItemName(evolutions[i].params[j].arg2, gStringVar2);
                     StringAppend(gStringVar4, gStringVar2);
