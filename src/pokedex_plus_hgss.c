@@ -134,6 +134,10 @@ static const u8 sText_TenDashes[] = _("----------");
 ALIGNED(4) static const u8 sExpandedPlaceholder_PokedexDescription[] = _("");
 static const u16 sSizeScreenSilhouette_Pal[] = INCBIN_U16("graphics/pokedex/size_silhouette.gbapal");
 
+// Info screen hint for the Type Matchups shortcut, printed under the footprint box
+static const u8 sText_Info_TypeMatchups[] = _("{START_BUTTON} TYPES");
+static const u8 sText_Info_TypeMatchups_Decapped[] = _("{START_BUTTON} Types");
+
 static const u8 sText_Stats_Buttons[] = _("{A_BUTTON}TOGGLE   {DPAD_UPDOWN}MOVES");
 static const u8 sText_Stats_Buttons_Decapped[] = _("{A_BUTTON}Toggle   {DPAD_UPDOWN}Moves");
 static const u8 sText_Stats_HP[] = _("HP");
@@ -501,6 +505,8 @@ static u8 StartInfoScreenScroll(struct PokedexListItem *, u8);
 static void Task_LoadInfoScreen(u8);
 static void Task_HandleInfoScreenInput(u8);
 static void Task_SwitchScreensFromInfoScreen(u8);
+static void Task_OpenTypeMatchupsFromInfoScreen(u8);
+static void Task_WaitForExitTypeMatchupsToInfoScreen(u8);
 static void Task_LoadInfoScreenWaitForFade(u8);
 static void Task_WaitForFadeFromEvoFormsScreen(u8);
 static void Task_ExitInfoScreen(u8);
@@ -617,6 +623,7 @@ static void FillCryMeterWindowTilemapWithBg(void);
 //Type matchups screen
 static u8 LoadTypeMatchupsScreen(void);
 static void Task_WaitForExitTypeMatchups(u8 taskId);
+static void SetTypeMatchupsSeed(u32 type1, u32 type2);
 
 //Stat bars by DizzyEgg
 #define TAG_STAT_BAR 4097
@@ -3817,6 +3824,7 @@ static void SpriteCB_StatBarsBg(struct Sprite *sprite)
 #define tSkipCry         data[3]
 #define tMonSpriteId     data[4]
 #define tTrainerSpriteId data[5]
+#define tMatchupsTaskId  data[6]
 
 static u8 LoadInfoScreen(struct PokedexListItem *item, u8 monSpriteId, bool8 monSpriteDone)
 {
@@ -4002,6 +4010,18 @@ static void Task_HandleInfoScreenInput(u8 taskId)
         return;
     }
 
+    // Straight to this mon's matchups. Unowned mon don't show their types, so they don't offer it either
+    if (JOY_NEW(START_BUTTON) && sPokedexListItem->owned)
+    {
+        u32 species = NationalPokedexNumToSpeciesHGSS(sPokedexListItem->dexNum);
+
+        SetTypeMatchupsSeed(GetSpeciesType(species, 0), GetSpeciesType(species, 1));
+        BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 0x10, RGB_BLACK);
+        gTasks[taskId].func = Task_OpenTypeMatchupsFromInfoScreen;
+        PlaySE(SE_PIN);
+        return;
+    }
+
     if ((JOY_NEW(DPAD_RIGHT) || (JOY_NEW(R_BUTTON) && gSaveBlock2Ptr->optionsButtonMode == OPTIONS_BUTTON_MODE_LR)))
     {
         sPokedexView->selectedScreen = AREA_SCREEN;
@@ -4032,6 +4052,44 @@ static void Task_SwitchScreensFromInfoScreen(u8 taskId)
             break;
         }
     }
+}
+
+// The matchups screen owns the whole display, so the info screen is torn down on the way in
+// and rebuilt on the way back, rather than handed over like the other screen switches
+static void Task_OpenTypeMatchupsFromInfoScreen(u8 taskId)
+{
+    if (gPaletteFade.active)
+        return;
+
+    // The matchups screen resets all sprite data, but the mon pic owns buffers of its own
+    FreeAndDestroyMonPicSprite(gTasks[taskId].tMonSpriteId);
+    FreeInfoScreenWindowAndBgBuffers();
+    gTasks[taskId].tMatchupsTaskId = LoadTypeMatchupsScreen();
+    gTasks[taskId].func = Task_WaitForExitTypeMatchupsToInfoScreen;
+}
+
+// Unlike Task_WaitForExitTypeMatchups, which drops back to the list, this returns to the
+// mon the screen was opened from
+static void Task_WaitForExitTypeMatchupsToInfoScreen(u8 taskId)
+{
+    if (gTasks[gTasks[taskId].tMatchupsTaskId].isActive)
+        return;
+
+    // The same setup LoadInfoScreen does, since Task_LoadInfoScreen expects it in place
+    ResetBgsAndClearDma3BusyFlags(0);
+    InitBgsFromTemplates(0, sInfoScreen_BgTemplate, ARRAY_COUNT(sInfoScreen_BgTemplate));
+    SetBgTilemapBuffer(3, AllocZeroed(BG_SCREEN_SIZE));
+    SetBgTilemapBuffer(2, AllocZeroed(BG_SCREEN_SIZE));
+    SetBgTilemapBuffer(1, AllocZeroed(BG_SCREEN_SIZE));
+    SetBgTilemapBuffer(0, AllocZeroed(BG_SCREEN_SIZE));
+    InitWindows(sInfoScreen_WindowTemplates);
+    DeactivateAllTextPrinters();
+    gTasks[taskId].tScrolling = FALSE;
+    gTasks[taskId].tMonSpriteDone = FALSE; // the mon pic and the BG were both thrown away
+    gTasks[taskId].tBgLoaded = FALSE;
+    gTasks[taskId].tSkipCry = TRUE;
+    gMain.state = 0;
+    gTasks[taskId].func = Task_LoadInfoScreen;
 }
 
 static void Task_LoadInfoScreenWaitForFade(u8 taskId)
@@ -4578,6 +4636,108 @@ static void CreateTypeIconSprites(void)
 }
 
 // u32 value is re-used, but passed as a bool that's TRUE if national dex is enabled
+// Indices into the dex's BG palette 0, which the info screen's frame art is drawn from
+#define DEX_PAL_WHITE  1
+#define DEX_PAL_SHADOW 3
+#define DEX_PAL_GREY   5
+#define DEX_PAL_RED    7
+#define DEX_PAL_BLACK  15
+
+// The gap below the footprint box, between the mon sprite and the HT/WT box
+#define HINT_X0 86
+#define HINT_X1 144
+#define HINT_Y  75
+#define HINT_W  (HINT_X1 - HINT_X0 + 1)
+#define HINT_TEXT_X 91
+
+static const u8 sTypeMatchupsHintColors[] = {DEX_PAL_RED, DEX_PAL_WHITE, DEX_PAL_BLACK};
+
+// The keypad icon is blitted with the window's own palette, in which index 2 is a near
+// white grey, so the word START on its white pill would be invisible. Those pixels are
+// swapped for the darker grey the dex uses elsewhere, in the same 4bpp window buffer the
+// blit wrote to.
+static void DarkenHintKeypadIcon(u32 left, u32 top, u32 width, u32 height)
+{
+    u8 *pixels = (u8 *)GetWindowAttribute(WIN_INFO, WINDOW_TILE_DATA);
+    u32 tilesPerRow = GetWindowAttribute(WIN_INFO, WINDOW_WIDTH);
+    u32 x, y, shift;
+    u8 *pixel;
+
+    for (y = top; y < top + height; y++)
+    {
+        for (x = left; x < left + width; x++)
+        {
+            pixel = pixels + ((x >> 1) & 3) + ((x >> 3) << 5) + (((y >> 3) * tilesPerRow) << 5) + ((y & 7) << 2);
+            shift = (x & 1) << 2;
+            if (((*pixel >> shift) & 0xF) == 2)
+                *pixel = (*pixel & (0xF0 >> shift)) | (DEX_PAL_GREY << shift);
+        }
+    }
+}
+
+// The shortcut's hint, drawn as a chip in the frame style the rest of the screen uses:
+// a black outline with grey corner pixels and the same 2px drop shadow the footprint box
+// above it casts. It is drawn into WIN_INFO rather than the BG, so it is only there for
+// owned mon, and the text is printed on a red background so its own background pixels
+// land on the chip instead of punching through to the grid behind it.
+static void PrintTypeMatchupsHint(void)
+{
+    u32 y = HINT_Y, i;
+
+    FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_GREY), HINT_X0 + 1, y, 1, 1);
+    FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_BLACK), HINT_X0 + 2, y, HINT_W - 4, 1);
+    FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_GREY), HINT_X1 - 1, y, 1, 1);
+    y++;
+    for (i = 0; i < 12; i++, y++)
+    {
+        if (i == 0 || i == 11) // the rounded top and bottom of the chip
+        {
+            FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_GREY), HINT_X0, y, 1, 1);
+            FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_BLACK), HINT_X0 + 1, y, 1, 1);
+            FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_RED), HINT_X0 + 2, y, HINT_W - 4, 1);
+            FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_BLACK), HINT_X1 - 1, y, 1, 1);
+            FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_GREY), HINT_X1, y, 1, 1);
+        }
+        else
+        {
+            FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_BLACK), HINT_X0, y, 1, 1);
+            FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_RED), HINT_X0 + 1, y, HINT_W - 2, 1);
+            FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_BLACK), HINT_X1, y, 1, 1);
+        }
+        // the shadow only starts under the chip's first full row, as the footprint box's does
+        FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_SHADOW), HINT_X1 + 1, y, i == 0 ? 1 : 2, 1);
+    }
+    FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_GREY), HINT_X0 + 1, y, 1, 1);
+    FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_BLACK), HINT_X0 + 2, y, HINT_W - 4, 1);
+    FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_GREY), HINT_X1 - 1, y, 1, 1);
+    FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_SHADOW), HINT_X1, y, 3, 1);
+    y++;
+    // the two shadow rows below step right by one, the same way the footprint box's do
+    FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_SHADOW), HINT_X0 + 3, y, HINT_W - 6, 1);
+    FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_GREY), HINT_X1 - 3, y, 1, 1);
+    FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_SHADOW), HINT_X1 - 2, y, 4, 1);
+    y++;
+    FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_SHADOW), HINT_X0 + 4, y, HINT_W - 6, 1);
+    FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_GREY), HINT_X1 - 2, y, 1, 1);
+    FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_SHADOW), HINT_X1 - 1, y, 3, 1);
+
+    // A glyph's ink is the bottom 8 rows of its 12 row cell, so the cell has to start
+    // above the chip to centre the label in it. The cell's own background is the chip's
+    // red, so the rows it paints over the top edge are simply drawn again afterwards.
+    AddTextPrinterParameterized4(WIN_INFO, FONT_SMALL, HINT_TEXT_X, HINT_Y - 1, 0, 0, sTypeMatchupsHintColors,
+                                 TEXT_SKIP_DRAW, HGSS_DECAPPED ? sText_Info_TypeMatchups_Decapped : sText_Info_TypeMatchups);
+    DarkenHintKeypadIcon(HINT_TEXT_X, HINT_Y + 3, 24, 8);
+    FillWindowPixelRect(WIN_INFO, PIXEL_FILL(0), HINT_TEXT_X, HINT_Y - 1, HINT_X1 - HINT_TEXT_X, 1);
+    FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_BLACK), HINT_TEXT_X, HINT_Y, HINT_X1 - 1 - HINT_TEXT_X, 1);
+    FillWindowPixelRect(WIN_INFO, PIXEL_FILL(DEX_PAL_GREY), HINT_X1 - 1, HINT_Y, 1, 1);
+}
+
+#undef HINT_X0
+#undef HINT_X1
+#undef HINT_Y
+#undef HINT_W
+#undef HINT_TEXT_X
+
 static void PrintMonInfo(u32 num, u32 value, u32 owned, u32 newEntry)
 {
     u8 str[16];
@@ -4619,7 +4779,12 @@ static void PrintMonInfo(u32 num, u32 value, u32 owned, u32 newEntry)
 
     //Type Icon(s)
     if (owned)
+    {
         PrintCurrentSpeciesTypeInfo(newEntry, species);
+        // Only the info screen binds START, so the caught-mon page doesn't advertise it
+        if (!newEntry)
+            PrintTypeMatchupsHint();
+    }
 }
 
 // Unused in the English version, used to print height/weight in versions which use metric system.
@@ -9080,7 +9245,7 @@ static void FillCryMeterWindowTilemapWithBg(void)
 #define TM_LIST_WIN_Y       (TM_LIST_TOP - TM_MAIN_WIN_Y)
 #define TM_TEXT_PAL         6    // BG palette for WIN_TM_MAIN: the dex text colours plus the battle symbol colours
 #define TM_BAR_FIRST_TILE   0x60 // bar tiles load straight after tileset_menu2's 96 tiles
-#define TM_BG1_FIRST_TILE   248  // BG1's windows sit after those bar tiles (0x60-0xF7)
+#define TM_BG1_FIRST_TILE   272  // BG1's windows sit after those bar tiles (0x60-0x10F)
 #define TAG_TYPE_MATCHUPS_CURSOR 4099
 #define TM_NO_HOLD          0xFF
 #define TYPE_INFO_PALETTE_NUM_OFFSET -1 // same palette shift as the info screen's type icons
@@ -9105,6 +9270,14 @@ enum
     TM_PAGE_DEFENDING,
 };
 
+// How the screen was opened: from the picker, or seeded with a species' typing
+enum
+{
+    TM_SEED_NONE,
+    TM_SEED_SINGLE,
+    TM_SEED_PAIR,
+};
+
 // Order of the entries in tilemap_type_matchups_bars.bin, 64 tilemap entries (rows 0-1) each
 enum
 {
@@ -9113,6 +9286,7 @@ enum
     TM_BAR_ATTACKING,
     TM_BAR_DEFENDING,
     TM_BAR_PAIRING,
+    TM_BAR_DEFENDING_ONLY,
 };
 
 struct TypeMatchupsView
@@ -9123,6 +9297,7 @@ struct TypeMatchupsView
     u8 held;        // index into types[], TM_NO_HOLD when nothing is held
     u8 tab;
     u8 page;
+    u8 seedMode;
     u8 listIconCount;
     s16 listHeight;
     s16 scroll;
@@ -9152,6 +9327,9 @@ struct TypeMatchupsInfoRow
 };
 
 static EWRAM_DATA struct TypeMatchupsView *sTypeMatchups = NULL;
+// Set by the info screen's SELECT shortcut, consumed by the next load of the screen
+static EWRAM_DATA bool8 sTypeMatchupsSeeded = FALSE;
+static EWRAM_DATA u8 sTypeMatchupsSeedTypes[2] = {0};
 
 static const u32 sTypeMatchups_BarGfx[] = INCBIN_U32("graphics/pokedex/hgss/tileset_type_matchups.4bpp.smol");
 static const u16 sTypeMatchups_BarTilemaps[] = INCBIN_U16("graphics/pokedex/hgss/tilemap_type_matchups_bars.bin");
@@ -9842,12 +10020,21 @@ static void TypeMatchups_DrawPage(void)
     u32 page = sTypeMatchups->page;
 
     TypeMatchups_HideSprites();
-    TypeMatchups_LoadBar(page == TM_PAGE_ATTACKING ? TM_BAR_ATTACKING : TM_BAR_DEFENDING);
+    // Opened from a species, the screen only answers "what hurts this thing", so the page
+    // has no ATTACKING tab to switch to and uses the tabless bar
+    if (sTypeMatchups->seedMode == TM_SEED_SINGLE)
+        TypeMatchups_LoadBar(TM_BAR_DEFENDING_ONLY);
+    else
+        TypeMatchups_LoadBar(page == TM_PAGE_ATTACKING ? TM_BAR_ATTACKING : TM_BAR_DEFENDING);
     TypeMatchups_DrawTopPanel(sTypeMatchups->types[sTypeMatchups->cursor],
                               page == TM_PAGE_ATTACKING ? sText_TypeMatchups_Attacking : sText_TypeMatchups_Defending);
     TypeMatchups_DrawList(rows, TypeMatchups_BuildSingleRows(rows));
-    TypeMatchups_DrawNav(sTypeMatchups->listHeight > TM_LIST_HEIGHT
-                         ? sText_TypeMatchups_NavPageScroll : sText_TypeMatchups_NavPage);
+    if (sTypeMatchups->seedMode == TM_SEED_SINGLE)
+        TypeMatchups_DrawNav(sTypeMatchups->listHeight > TM_LIST_HEIGHT
+                             ? sText_TypeMatchups_NavScroll : sText_TypeMatchups_NavBack);
+    else
+        TypeMatchups_DrawNav(sTypeMatchups->listHeight > TM_LIST_HEIGHT
+                             ? sText_TypeMatchups_NavPageScroll : sText_TypeMatchups_NavPage);
     TypeMatchups_CopyWindowsToVram();
 }
 
@@ -9916,6 +10103,57 @@ static void TypeMatchups_SetUpWindows(void)
     SetGpuReg(REG_OFFSET_WINOUT, WINOUT_WIN01_BG0 | WINOUT_WIN01_BG1 | WINOUT_WIN01_BG3 | WINOUT_WIN01_CLR);
 }
 
+static void SetTypeMatchupsSeed(u32 type1, u32 type2)
+{
+    sTypeMatchupsSeedTypes[0] = type1;
+    sTypeMatchupsSeedTypes[1] = type2;
+    sTypeMatchupsSeeded = TRUE;
+}
+
+static u32 TypeMatchups_IndexOfType(u32 type)
+{
+    u32 i;
+
+    for (i = 0; i < sTypeMatchups->typeCount; i++)
+    {
+        if (sTypeMatchups->types[i] == type)
+            return i;
+    }
+    return TM_NO_HOLD;
+}
+
+// A seeded open lands on the mon's own matchups: its pairing page, or its single type's
+// DEFENDING page, since "what hurts this thing?" is the question the shortcut answers.
+// B from there still falls back to the picker, so the rest of the screen stays reachable.
+static void TypeMatchups_ApplySeed(void)
+{
+    u32 first, second;
+
+    sTypeMatchups->seedMode = TM_SEED_NONE;
+    if (!sTypeMatchupsSeeded)
+        return;
+    sTypeMatchupsSeeded = FALSE;
+
+    first = TypeMatchups_IndexOfType(sTypeMatchupsSeedTypes[0]);
+    second = TypeMatchups_IndexOfType(sTypeMatchupsSeedTypes[1]);
+    if (first == TM_NO_HOLD) // a type the grid doesn't list, e.g. TYPE_MYSTERY
+        return;
+
+    if (second != TM_NO_HOLD && second != first)
+    {
+        // The pair panel prints the held type first, so it takes the species' first type
+        sTypeMatchups->held = first;
+        sTypeMatchups->cursor = second;
+        sTypeMatchups->seedMode = TM_SEED_PAIR;
+    }
+    else
+    {
+        sTypeMatchups->cursor = first;
+        sTypeMatchups->page = TM_PAGE_DEFENDING;
+        sTypeMatchups->seedMode = TM_SEED_SINGLE;
+    }
+}
+
 static void Task_LoadTypeMatchupsScreen(u8 taskId)
 {
     switch (gMain.state)
@@ -9952,7 +10190,13 @@ static void Task_LoadTypeMatchupsScreen(u8 taskId)
         sTypeMatchups->held = TM_NO_HOLD;
         TypeMatchups_BuildTypeList();
         TypeMatchups_CreateSprites();
-        TypeMatchups_DrawPicker();
+        TypeMatchups_ApplySeed();
+        if (sTypeMatchups->seedMode == TM_SEED_PAIR)
+            TypeMatchups_DrawPairPage();
+        else if (sTypeMatchups->seedMode == TM_SEED_SINGLE)
+            TypeMatchups_DrawPage();
+        else
+            TypeMatchups_DrawPicker();
         CopyBgTilemapBufferToVram(1);
         CopyBgTilemapBufferToVram(2);
         gMain.state++;
@@ -9976,7 +10220,12 @@ static void Task_LoadTypeMatchupsScreen(u8 taskId)
     case 4:
         if (!gPaletteFade.active)
         {
-            gTasks[taskId].func = Task_HandleTypeMatchupsPickerInput;
+            if (sTypeMatchups->seedMode == TM_SEED_PAIR)
+                gTasks[taskId].func = Task_HandleTypeMatchupsPairInput;
+            else if (sTypeMatchups->seedMode == TM_SEED_SINGLE)
+                gTasks[taskId].func = Task_HandleTypeMatchupsPageInput;
+            else
+                gTasks[taskId].func = Task_HandleTypeMatchupsPickerInput;
             gMain.state = 0;
         }
         break;
@@ -10083,15 +10332,30 @@ static void Task_HandleTypeMatchupsPickerInput(u8 taskId)
     }
 }
 
-static void Task_HandleTypeMatchupsPageInput(u8 taskId)
+// Opened from a species, B is the way back to that species; opened from the grid, it is
+// the way back to the grid
+static void TypeMatchups_GoBack(u8 taskId)
 {
-    if (JOY_NEW(B_BUTTON))
+    if (sTypeMatchups->seedMode == TM_SEED_NONE)
     {
         TypeMatchups_DrawPicker();
         PlaySE(SE_SELECT);
         gTasks[taskId].func = Task_HandleTypeMatchupsPickerInput;
+        return;
     }
-    else if (JOY_NEW(L_BUTTON) && sTypeMatchups->page == TM_PAGE_DEFENDING)
+    PlaySE(SE_PC_OFF);
+    BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
+    gTasks[taskId].func = Task_ExitTypeMatchups;
+}
+
+static void Task_HandleTypeMatchupsPageInput(u8 taskId)
+{
+    if (JOY_NEW(B_BUTTON))
+    {
+        TypeMatchups_GoBack(taskId);
+    }
+    else if (JOY_NEW(L_BUTTON) && sTypeMatchups->page == TM_PAGE_DEFENDING
+             && sTypeMatchups->seedMode != TM_SEED_SINGLE)
     {
         sTypeMatchups->page = TM_PAGE_ATTACKING;
         TypeMatchups_DrawPage();
@@ -10103,14 +10367,16 @@ static void Task_HandleTypeMatchupsPageInput(u8 taskId)
         TypeMatchups_DrawPage();
         PlaySE(SE_DEX_PAGE);
     }
-    // Steps through the grid order without wrapping; the picker cursor follows
-    else if (JOY_NEW(DPAD_LEFT) && sTypeMatchups->cursor > 0)
+    // Steps through the grid order without wrapping; the picker cursor follows. Opened
+    // from a species there is nothing to step through, only that species' own type.
+    else if (JOY_NEW(DPAD_LEFT) && sTypeMatchups->cursor > 0 && sTypeMatchups->seedMode != TM_SEED_SINGLE)
     {
         sTypeMatchups->cursor--;
         TypeMatchups_DrawPage();
         PlaySE(SE_SELECT);
     }
-    else if (JOY_NEW(DPAD_RIGHT) && sTypeMatchups->cursor < sTypeMatchups->typeCount - 1)
+    else if (JOY_NEW(DPAD_RIGHT) && sTypeMatchups->cursor < sTypeMatchups->typeCount - 1
+             && sTypeMatchups->seedMode != TM_SEED_SINGLE)
     {
         sTypeMatchups->cursor++;
         TypeMatchups_DrawPage();
@@ -10126,9 +10392,7 @@ static void Task_HandleTypeMatchupsPairInput(u8 taskId)
 {
     if (JOY_NEW(B_BUTTON))
     {
-        TypeMatchups_DrawPicker();
-        PlaySE(SE_SELECT);
-        gTasks[taskId].func = Task_HandleTypeMatchupsPickerInput;
+        TypeMatchups_GoBack(taskId);
         return;
     }
     TypeMatchups_HandleScroll();
