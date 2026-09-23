@@ -90,7 +90,8 @@ GoldenrodDeptStore_EventScript_VendingMachine::
 	message GoldenrodDeptStore_Text_WhichDrinkWouldYouLike
 	waitmessage
 	showmoneybox 0, 0
-	setvar VAR_TEMP_3, 0
+	setvar VAR_TEMP_3, 0  @ cursor starts on FRESH WATER
+	setvar VAR_TEMP_4, 0  @ no drink bought yet
 	goto GoldenrodDeptStore_EventScript_ChooseDrink
 	end
 
@@ -109,8 +110,7 @@ GoldenrodDeptStore_EventScript_ChooseDrink_FreshWater::
 	case 0, GoldenrodDeptStore_EventScript_FreshWater
 	case 1, GoldenrodDeptStore_EventScript_SodaPop
 	case 2, GoldenrodDeptStore_EventScript_Lemonade
-	msgbox GoldenrodDeptStore_Text_DecidedAgainstBuyingDrink, MSGBOX_DEFAULT
-	goto GoldenrodDeptStore_EventScript_ExitVendingMachine
+	goto GoldenrodDeptStore_EventScript_CancelDrink
 	end
 
 GoldenrodDeptStore_EventScript_ChooseDrink_SodaPop::
@@ -120,7 +120,7 @@ GoldenrodDeptStore_EventScript_ChooseDrink_SodaPop::
 	case 0, GoldenrodDeptStore_EventScript_FreshWater
 	case 1, GoldenrodDeptStore_EventScript_SodaPop
 	case 2, GoldenrodDeptStore_EventScript_Lemonade
-	goto GoldenrodDeptStore_EventScript_ExitVendingMachine
+	goto GoldenrodDeptStore_EventScript_CancelDrink
 	end
 
 GoldenrodDeptStore_EventScript_ChooseDrink_Lemonade::
@@ -130,7 +130,7 @@ GoldenrodDeptStore_EventScript_ChooseDrink_Lemonade::
 	case 0, GoldenrodDeptStore_EventScript_FreshWater
 	case 1, GoldenrodDeptStore_EventScript_SodaPop
 	case 2, GoldenrodDeptStore_EventScript_Lemonade
-	goto GoldenrodDeptStore_EventScript_ExitVendingMachine
+	goto GoldenrodDeptStore_EventScript_CancelDrink
 	end
 
 GoldenrodDeptStore_EventScript_FreshWater::
@@ -186,6 +186,7 @@ GoldenrodDeptStore_EventScript_TryBuyDrink::
 	call_if_eq VAR_TEMP_1, 1, GoldenrodDeptStore_EventScript_RemoveMoneySodaPop
 	call_if_eq VAR_TEMP_1, 2, GoldenrodDeptStore_EventScript_RemoveMoneyLemonade
 	updatemoneybox
+	setvar VAR_TEMP_4, 1  @ a drink has now been bought
 	bufferitemname STR_VAR_1, VAR_TEMP_2
 	playse SE_VEND
 	msgbox GoldenrodDeptStore_Text_CanOfDrinkDroppedDown, MSGBOX_DEFAULT
@@ -222,6 +223,17 @@ GoldenrodDeptStore_EventScript_ChooseNewDrink::
 	goto GoldenrodDeptStore_EventScript_ChooseDrink
 	end
 
+GoldenrodDeptStore_EventScript_CancelDrink::
+	goto_if_eq VAR_TEMP_4, 0, GoldenrodDeptStore_EventScript_CancelFirstDrink
+	msgbox GoldenrodDeptStore_Text_DecidedAgainstBuyingMoreDrinks, MSGBOX_DEFAULT
+	goto GoldenrodDeptStore_EventScript_ExitVendingMachine
+	end
+
+GoldenrodDeptStore_EventScript_CancelFirstDrink::
+	msgbox GoldenrodDeptStore_Text_DecidedAgainstBuyingDrink, MSGBOX_DEFAULT
+	goto GoldenrodDeptStore_EventScript_ExitVendingMachine
+	end
+
 GoldenrodDeptStore_EventScript_NotEnoughMoneyForDrink::
 	msgbox GoldenrodDeptStore_Text_NotEnoughMoney, MSGBOX_DEFAULT
 	goto GoldenrodDeptStore_EventScript_ExitVendingMachine
@@ -255,6 +267,9 @@ GoldenrodDeptStore_Text_NotEnoughMoney:
 
 GoldenrodDeptStore_Text_DecidedAgainstBuyingDrink:
 	.string "Decided against buying a drink.$"
+
+GoldenrodDeptStore_Text_DecidedAgainstBuyingMoreDrinks:
+	.string "Decided against buying more drinks.$"
 
 GoldenrodDeptStore_Text_2FDirectory:
     .string "Your Travel Companion\p"
