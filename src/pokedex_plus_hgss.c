@@ -9238,6 +9238,17 @@ static void FillCryMeterWindowTilemapWithBg(void)
 #define TM_HANDLE_X         231  // ...under a 6x8 red handle with a black outline
 #define TM_HANDLE_W         6
 #define TM_HANDLE_H         8
+// The top panel's layout, shared by the single type and the pairing panels. The icons
+// are screen coordinates (they are sprites); the text is WIN_TM_TOP's, whose origin is
+// screen (8,16). WIN1 only shows screen rows 18-47, so the line at the bottom sits one
+// row higher than it reads naturally: any lower and its last pixel row is cut off.
+#define TM_PANEL_ICON_X     10
+#define TM_PANEL_ICON_Y     20
+#define TM_PANEL_ROW_Y      4    // the name shares the icons' row
+#define TM_PANEL_NAME_X     46   // one icon, then the same gap the pairing panel leaves
+#define TM_PANEL_PAIR_NAME_X 82
+#define TM_PANEL_TEXT_X     2
+#define TM_PANEL_TEXT_Y     19
 #define TM_TOP_PANEL_Y      2    // window row where the top panel's white interior starts
 #define TM_TOP_PANEL_H      30
 #define TM_MAIN_WIN_X       8    // screen position of WIN_TM_MAIN, for converting layout coordinates
@@ -9795,12 +9806,16 @@ static void TypeMatchups_DrawList(const struct TypeMatchupsListRow *rows, u32 ro
     TypeMatchups_ApplyScroll();
 }
 
+// Both panels lay out the same way: the icons top left, the name beside them and the
+// line about them across the bottom. A type icon's pill and a FONT_NORMAL capital are
+// both centred 7.5px into their cell, so the name lines up with an icon by taking the
+// same y as it.
 static void TypeMatchups_DrawTopPanel(u32 type, const u8 *description)
 {
     TypeMatchups_ClearTopPanel();
-    TypeMatchups_Print(WIN_TM_TOP, FONT_NORMAL, 40, 2, sTypeMatchupsColor_Black, gTypesInfo[type].name);
-    TypeMatchups_Print(WIN_TM_TOP, FONT_SMALL, 40, 17, sTypeMatchupsColor_Gray, description);
-    TypeMatchups_ShowPanelIcon(TM_TYPE_COUNT, type, 10, 26);
+    TypeMatchups_Print(WIN_TM_TOP, FONT_NORMAL, TM_PANEL_NAME_X, TM_PANEL_ROW_Y, sTypeMatchupsColor_Black, gTypesInfo[type].name);
+    TypeMatchups_Print(WIN_TM_TOP, FONT_SMALL, TM_PANEL_TEXT_X, TM_PANEL_TEXT_Y, sTypeMatchupsColor_Gray, description);
+    TypeMatchups_ShowPanelIcon(TM_TYPE_COUNT, type, TM_PANEL_ICON_X, TM_PANEL_ICON_Y);
 }
 
 // Both icons side by side, then "FIRE/STEEL"
@@ -9812,10 +9827,10 @@ static void TypeMatchups_DrawPairPanel(u32 first, u32 second, const u8 *descript
     end = StringCopy(sTypeMatchups->pairName, gTypesInfo[first].name);
     *end++ = CHAR_SLASH;
     StringCopy(end, gTypesInfo[second].name);
-    TypeMatchups_Print(WIN_TM_TOP, FONT_NORMAL, 82, 2, sTypeMatchupsColor_Black, sTypeMatchups->pairName);
-    TypeMatchups_Print(WIN_TM_TOP, FONT_SMALL, 2, 21, sTypeMatchupsColor_Gray, description);
-    TypeMatchups_ShowPanelIcon(TM_TYPE_COUNT, first, 10, 20);
-    TypeMatchups_ShowPanelIcon(TM_TYPE_COUNT + 1, second, 46, 20);
+    TypeMatchups_Print(WIN_TM_TOP, FONT_NORMAL, TM_PANEL_PAIR_NAME_X, TM_PANEL_ROW_Y, sTypeMatchupsColor_Black, sTypeMatchups->pairName);
+    TypeMatchups_Print(WIN_TM_TOP, FONT_SMALL, TM_PANEL_TEXT_X, TM_PANEL_TEXT_Y, sTypeMatchupsColor_Gray, description);
+    TypeMatchups_ShowPanelIcon(TM_TYPE_COUNT, first, TM_PANEL_ICON_X, TM_PANEL_ICON_Y);
+    TypeMatchups_ShowPanelIcon(TM_TYPE_COUNT + 1, second, TM_PANEL_ICON_X + 36, TM_PANEL_ICON_Y);
 }
 
 static void TypeMatchups_DrawNav(const u8 *str)
