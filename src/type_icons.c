@@ -234,12 +234,14 @@ const struct SpriteTemplate sSpriteTemplate_TypeIcons2 =
 
 // The build-time config is the master switch; the player's Challenge Settings
 // choice narrows it from there, the same way B_SHOW_EFFECTIVENESS works.
+// HARD is the only tier that shows the icons: it takes the effectiveness
+// readout away and hands the player the foe's types to work from instead.
 static bool32 ShouldShowTypeIcons(void)
 {
     if (B_SHOW_TYPES == SHOW_TYPES_NEVER)
         return FALSE;
 
-    return gSaveBlock3Ptr->challengeSettings.enemyTypeIndicator != OPTIONS_TYPE_INDICATOR_OFF;
+    return gSaveBlock3Ptr->challengeSettings.battleInfoLevel == OPTIONS_BATTLE_INFO_HARD;
 }
 
 void LoadTypeIcons(enum BattlerId battler)
@@ -329,7 +331,7 @@ static enum Type GetMonPublicType(enum BattlerId battlerId, u32 typeNum)
 static bool32 ShouldHideUncaughtType(u32 species)
 {
     if (B_SHOW_TYPES != SHOW_TYPES_CAUGHT
-        && gSaveBlock3Ptr->challengeSettings.enemyTypeIndicator != OPTIONS_TYPE_INDICATOR_CAUGHT)
+        && gSaveBlock3Ptr->challengeSettings.battleInfoLevel != OPTIONS_BATTLE_INFO_HARD)
         return FALSE;
 
     if (GetSetPokedexFlag(SpeciesToNationalPokedexNum(species), FLAG_GET_CAUGHT))
@@ -340,8 +342,9 @@ static bool32 ShouldHideUncaughtType(u32 species)
 
 static bool32 ShouldHideUnseenType(u32 species)
 {
-    if (B_SHOW_TYPES != SHOW_TYPES_SEEN
-        && gSaveBlock3Ptr->challengeSettings.enemyTypeIndicator != OPTIONS_TYPE_INDICATOR_SEEN)
+    // No BATTLE INFO tier gates on "seen", so only the build-time config can
+    // reach this; HARD is caught-only and handled above.
+    if (B_SHOW_TYPES != SHOW_TYPES_SEEN)
         return FALSE;
 
     if (GetSetPokedexFlag(SpeciesToNationalPokedexNum(species), FLAG_GET_SEEN))

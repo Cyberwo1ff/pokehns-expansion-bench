@@ -228,18 +228,16 @@ enum Gender
 #define OPTIONS_EXP_MULTIPLIER_0_6X 4   // 0.6x EXP multiplier  Harder Difficulty
 #define OPTIONS_EXP_MULTIPLIER_0X   5   // 0x EXP multiplier    Hardest Difficulty
 
-// Saved raw in effectivenessIndicator, so 0 must stay ON (the pre-option behaviour)
-#define OPTIONS_EFFECTIVENESS_ON     0   // Always show the move effectiveness indicator
-#define OPTIONS_EFFECTIVENESS_SEEN   1   // Only against species the player has seen
-#define OPTIONS_EFFECTIVENESS_CAUGHT 2   // Only against species the player has caught
-#define OPTIONS_EFFECTIVENESS_OFF    3   // Never show it
-
-// Saved raw in enemyTypeIndicator, so 0 must stay OFF (the pre-option behaviour).
-// Ordered by how much the player is told, which is the reverse of the list above.
-#define OPTIONS_TYPE_INDICATOR_OFF    0   // Never show the foe's type icons
-#define OPTIONS_TYPE_INDICATOR_CAUGHT 1   // Only for species the player has caught
-#define OPTIONS_TYPE_INDICATOR_SEEN   2   // Only for species the player has seen
-#define OPTIONS_TYPE_INDICATOR_ON     3   // Always show them
+// Saved raw in battleInfoLevel, so 0 must stay DEFAULT (the pre-option behaviour).
+// HARD deliberately turns the foe's type icons on: losing the effectiveness
+// readout means the player has to infer it from the foe's types instead of
+// being told outright, so the icons are the ingredient, not the answer.
+// Ascending order = less help to the player, which also matches the
+// LOCK_ONEWAY_DOWN convention should this row ever be locked mid-run.
+#define OPTIONS_BATTLE_INFO_DEFAULT 0   // Foe types never, move effectiveness always
+#define OPTIONS_BATTLE_INFO_HARD    1   // Foe types for caught species, effectiveness never
+#define OPTIONS_BATTLE_INFO_CLASSIC 2   // Neither is ever shown, as the older games played
+#define OPTIONS_BATTLE_INFO_COUNT   3
 
 enum __attribute__((packed)) Direction
 {

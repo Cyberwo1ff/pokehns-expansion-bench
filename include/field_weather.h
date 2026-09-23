@@ -166,6 +166,7 @@ bool8 LoadDroughtWeatherPalettes(void);
 void DroughtStateInit(void);
 void DroughtStateRun(void);
 void Weather_SetBlendCoeffs(u8 eva, u8 evb);
+void Weather_ReapplyBlendCoeffs(void);
 void Weather_SetTargetBlendCoeffs(u8 eva, u8 evb, int delay);
 bool8 Weather_UpdateBlend(void);
 u8 GetCurrentWeather(void);

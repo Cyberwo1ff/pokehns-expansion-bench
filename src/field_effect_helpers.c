@@ -6,6 +6,7 @@
 #include "field_weather.h"
 #include "fieldmap.h"
 #include "gpu_regs.h"
+#include "map_preview_screen.h"
 #include "metatile_behavior.h"
 #include "palette.h"
 #include "sound.h"
@@ -389,7 +390,12 @@ void UpdateShadowFieldEffect(struct Sprite *sprite)
         #else
         sprite->y = linkedSprite->y + sprite->sYOffset;
         #endif
-        sprite->invisible = linkedSprite->invisible;
+        // Hidden while the forest map preview cross-fades over the map. The GBA only
+        // blends the top two layers of a pixel, so under the fading preview a shadow is
+        // composited as its raw, opaque colour instead of being blended with the ground,
+        // and reads as a solid black blob. Hiding rather than stopping it keeps the
+        // sprite alive, so it simply appears, correctly blended, once the task ends.
+        sprite->invisible = linkedSprite->invisible || ForestMapPreviewScreenIsRunning();
         if (objectEvent->jumpDone)
         {
             //  Ugly signaling to disable shadows after a jump

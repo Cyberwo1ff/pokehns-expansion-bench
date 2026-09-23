@@ -2405,18 +2405,11 @@ static bool32 ShouldShowTypeEffectiveness(u32 targetId)
     if (B_SHOW_EFFECTIVENESS == SHOW_EFFECTIVENESS_SEEN)
         return GetSetPokedexFlag(SpeciesToNationalPokedexNum(gBattleMons[targetId].species), FLAG_GET_SEEN);
 
-    // Player's Challenge Settings choice, on top of the build-time config above
-    switch (gSaveBlock3Ptr->challengeSettings.effectivenessIndicator)
-    {
-    case OPTIONS_EFFECTIVENESS_SEEN:
-        return GetSetPokedexFlag(SpeciesToNationalPokedexNum(gBattleMons[targetId].species), FLAG_GET_SEEN);
-    case OPTIONS_EFFECTIVENESS_CAUGHT:
-        return GetSetPokedexFlag(SpeciesToNationalPokedexNum(gBattleMons[targetId].species), FLAG_GET_CAUGHT);
-    case OPTIONS_EFFECTIVENESS_OFF:
-        return FALSE;
-    }
-
-    return TRUE;
+    // Player's Challenge Settings choice, on top of the build-time config above.
+    // Only DEFAULT shows the readout; HARD makes the player infer it from the
+    // foe's type icons instead, and OFF gives them neither. Tested for equality
+    // rather than inequality so an unexpected value fails closed.
+    return gSaveBlock3Ptr->challengeSettings.battleInfoLevel == OPTIONS_BATTLE_INFO_DEFAULT;
 }
 
 static u32 CheckTypeEffectiveness(enum BattlerId battlerAtk, enum BattlerId battlerDef)
