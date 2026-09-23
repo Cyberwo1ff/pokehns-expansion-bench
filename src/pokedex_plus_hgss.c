@@ -140,6 +140,10 @@ static const u8 sText_Info_TypeMatchups_Decapped[] = _("{START_BUTTON} Types");
 
 static const u8 sText_Stats_Buttons[] = _("{A_BUTTON}TOGGLE   {DPAD_UPDOWN}MOVES");
 static const u8 sText_Stats_Buttons_Decapped[] = _("{A_BUTTON}Toggle   {DPAD_UPDOWN}Moves");
+static const u8 sText_Stats_Buttons2[] = _("{START_BUTTON}VALUES");
+static const u8 sText_Stats_Buttons2_Decapped[] = _("{START_BUTTON}Values");
+static const u8 sText_Stats_Buttons2_Alt[] = _("{START_BUTTON}SYMBOLS");
+static const u8 sText_Stats_Buttons2_Alt_Decapped[] = _("{START_BUTTON}Symbols");
 static const u8 sText_Stats_HP[] = _("HP");
 static const u8 sText_Stats_Attack[] = _("ATK");
 static const u8 sText_Stats_Defense[] = _("DEF");
@@ -1395,11 +1399,11 @@ static const struct WindowTemplate sStatsScreen_WindowTemplates[] =
     {
         .bg = 2,
         .tilemapLeft = 0,
-        .tilemapTop = 18,
+        .tilemapTop = 16,
         .width = 12,
-        .height = 2,
-        .paletteNum = 15,
-        .baseBlock = 1 + 60 + 40 + 48 + 96,
+        .height = 4,
+        .paletteNum = 14,
+        .baseBlock = 1 + 60 + 40 + 48 + 96 + 24 + 72 + 72 + 36 + 144 + 108 + 12,
     },
     [WIN_STATS_MOVES_TOP] =
     {
@@ -1445,11 +1449,11 @@ static const struct WindowTemplate sStatsScreen_WindowTemplates[] =
     {
         .bg = 2,
         .tilemapLeft = 0,
-        .tilemapTop = 14,
+        .tilemapTop = 15,
         .width = 12,
-        .height = 4,
+        .height = 1,
         .paletteNum = 0,
-        .baseBlock = 1 + 60 + 40 + 48 + 96 + 24 + 72 + 72 + 36 + 144,
+        .baseBlock = 1 + 60 + 40 + 48 + 96 + 24 + 72 + 72 + 36 + 144 + 108,
     },
     DUMMY_WIN_TEMPLATE
 };
@@ -5110,15 +5114,31 @@ static void DestroyCategoryIcon(void)
 //*                                  *
 //************************************
 static const u8 sStatsPageNavigationTextColor[] = {TEXT_COLOR_TRANSPARENT, TEXT_COLOR_WHITE, TEXT_COLOR_DARK_GRAY};
+static const u8 sStatsPageButtonsTextColor[] = {TEXT_COLOR_TRANSPARENT, 1, 2};
+static const u16 sStatsPageButtonsPalette[16] =
+{
+    [1] = RGB(7, 7, 7),     // text and keypad icon body
+    [2] = RGB(25, 25, 25),  // shadow
+    [4] = RGB(16, 16, 16),  // the up/down dots on the d-pad icon
+};
 
 static void StatsPage_PrintNavigationButtons(void)
 {
-    u8 x = 9;
-    u8 y = 0;
+    u8 x = 8;
+    u8 y = 3;
+    u8 y2 = 15;
     if (!HGSS_DECAPPED)
-        AddTextPrinterParameterized3(WIN_STATS_NAVIGATION_BUTTONS, 0, x, y, sStatsPageNavigationTextColor, 0, sText_Stats_Buttons);
+    {
+        AddTextPrinterParameterized3(WIN_STATS_NAVIGATION_BUTTONS, 0, x, y, sStatsPageButtonsTextColor, 0, sText_Stats_Buttons);
+        AddTextPrinterParameterized3(WIN_STATS_NAVIGATION_BUTTONS, 0, x, y2, sStatsPageButtonsTextColor, 0,
+                                     sPokedexView->statsShowNumbers ? sText_Stats_Buttons2_Alt : sText_Stats_Buttons2);
+    }
     else
-        AddTextPrinterParameterized3(WIN_STATS_NAVIGATION_BUTTONS, 0, x, y, sStatsPageNavigationTextColor, 0, sText_Stats_Buttons_Decapped);
+    {
+        AddTextPrinterParameterized3(WIN_STATS_NAVIGATION_BUTTONS, 0, x, y, sStatsPageButtonsTextColor, 0, sText_Stats_Buttons_Decapped);
+        AddTextPrinterParameterized3(WIN_STATS_NAVIGATION_BUTTONS, 0, x, y2, sStatsPageButtonsTextColor, 0,
+                                     sPokedexView->statsShowNumbers ? sText_Stats_Buttons2_Alt_Decapped : sText_Stats_Buttons2_Decapped);
+    }
 
     PutWindowTilemap(WIN_STATS_NAVIGATION_BUTTONS);
     CopyWindowToVram(WIN_STATS_NAVIGATION_BUTTONS, 3);
@@ -5214,6 +5234,7 @@ static void Task_LoadStatsScreen(u8 taskId)
         break;
     case 1:
         LoadTilesetTilemapHGSS(STATS_SCREEN);
+        LoadPalette(sStatsPageButtonsPalette, BG_PLTT_ID(14), sizeof(sStatsPageButtonsPalette));
 
         ResetStatsWindows();
 
@@ -5368,6 +5389,9 @@ static void Task_HandleStatsScreenInput(u8 taskId)
 
         FillWindowPixelBuffer(WIN_STATS_LEFT, PIXEL_FILL(0));
         PrintStatsScreen_Left(taskId);
+
+        FillWindowPixelBuffer(WIN_STATS_NAVIGATION_BUTTONS, PIXEL_FILL(0));
+        StatsPage_PrintNavigationButtons();
     }
     if (JOY_NEW(B_BUTTON))
     {
