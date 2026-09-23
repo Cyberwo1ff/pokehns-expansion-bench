@@ -204,6 +204,29 @@ u8 CreateMonIconNoPersonalityIsEgg(u16 species, void (*callback)(struct Sprite *
     return spriteId;
 }
 
+// For icons that stand in for a species rather than being one, e.g. the Pokedex's
+// marker for an evolution the player hasn't seen yet. palIndex must be an index
+// into gMonIconPaletteTable, and that palette must already be loaded.
+u8 CreateMonIconCustomTiles(const u8 *tiles, u8 palIndex, void (*callback)(struct Sprite *), s16 x, s16 y, u8 subpriority)
+{
+    u8 spriteId;
+    struct MonIconSpriteTemplate iconTemplate =
+    {
+        .oam = &sMonIconOamData,
+        .image = tiles,
+        .anims = sMonIconAnims,
+        .affineAnims = sMonIconAffineAnims,
+        .callback = callback,
+        .paletteTag = POKE_ICON_BASE_PAL_TAG + palIndex,
+    };
+
+    spriteId = CreateMonIconSprite(&iconTemplate, x, y, subpriority);
+
+    UpdateMonIconFrame(&gSprites[spriteId]);
+
+    return spriteId;
+}
+
 u16 GetIconSpecies(u16 species, u32 personality)
 {
     species = SanitizeSpeciesId(species);
