@@ -13,10 +13,10 @@
 #define REVERSE_MOVES_DIRECTION             TRUE // If TRUE, Reversed Movement: Up on d-pad increments list, If FALSE, default: Down on d-pad increments list
 #define LOOP_MOVES_LIST                     TRUE // If TRUE, Looped List: List continues infinitely, If FALSE, default: List stops at 1 and at max moves
 
-// For modifying whether to use original numbers or summarised values
-#define CATCH_RATE_NUMBER                   TRUE // If TRUE, uses numeric catch rate, If FALSE, uses text labels instead
-#define FRIENDSHIP_BASE_NUMBER              TRUE // If TRUE, uses numeric base friendship rate, If FALSE, uses emoji instead
-#define EGG_CYCLES_NUMBER                   TRUE // If TRUE, uses numeric egg cycles rate, If FALSE, uses egg icons instead
+// Catch rate, base friendship and egg cycles can show either their summarised tags/icons or
+// their raw numbers. SELECT toggles between them on the stats screen; this sets which one the
+// Pokedex opens in, and the choice lasts until the Pokedex is closed.
+#define STATS_NUMBERS_BY_DEFAULT            FALSE // If TRUE, opens on raw numbers, If FALSE, default: opens on tags and icons
 
 #if IS_HNS
 #define SEPARATE_OBTAINABLE_DEX             TRUE

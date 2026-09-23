@@ -459,6 +459,7 @@ struct PokedexView
     s16 menuY;     //Menu Y position (inverted because we use REG_BG0VOFS for this)
     u8 unkArr2[8]; // Cleared, never read
     u8 unkArr3[8]; // Cleared, never read
+    bool8 statsShowNumbers; // Stats screen: raw numbers instead of the summarised tags/icons
 };
 
 static void ResetPokedexView(struct PokedexView *pokedexView);
@@ -2127,6 +2128,7 @@ static void ResetPokedexView(struct PokedexView *pokedexView)
         pokedexView->unkArr2[i] = 0;
     for (i = 0; i < ARRAY_COUNT(pokedexView->unkArr3); i++)
         pokedexView->unkArr3[i] = 0;
+    pokedexView->statsShowNumbers = STATS_NUMBERS_BY_DEFAULT;
     pokedexView->originalSearchSelectionNum = 0;
 }
 
@@ -5358,6 +5360,15 @@ static void Task_HandleStatsScreenInput(u8 taskId)
         FillWindowPixelBuffer(WIN_STATS_ABILITIES, PIXEL_FILL(0));
         PrintStatsScreen_Abilities(taskId);
     }
+    // Only the left panel changes, so only that window is redrawn
+    if (JOY_NEW(START_BUTTON))
+    {
+        PlaySE(SE_DEX_PAGE);
+        sPokedexView->statsShowNumbers = !sPokedexView->statsShowNumbers;
+
+        FillWindowPixelBuffer(WIN_STATS_LEFT, PIXEL_FILL(0));
+        PrintStatsScreen_Left(taskId);
+    }
     if (JOY_NEW(B_BUTTON))
     {
         BeginNormalPaletteFade(0xFFFFFFFF, 0, 0, 16, RGB_BLACK);
@@ -5976,7 +5987,7 @@ static void PrintStatsScreen_Left(u8 taskId)
         u32 catchRate = sPokedexView->sPokemonStats.catchRate;
         enum GrowthRate growthRate = sPokedexView->sPokemonStats.growthRate;
 
-        if(CATCH_RATE_NUMBER)
+        if (sPokedexView->statsShowNumbers)
         {
             //Catch rate - Number
             PrintStatsScreenTextSmall(WIN_STATS_LEFT, sText_Stats_CatchRate_Number, base_x, base_y + base_y_offset*base_i);
@@ -6044,7 +6055,7 @@ static void PrintStatsScreen_Left(u8 taskId)
 
         //Friendship
         PrintStatsScreenTextSmall(WIN_STATS_LEFT, sText_Stats_Friendship, base_x, base_y + base_y_offset*base_i);
-        if (FRIENDSHIP_BASE_NUMBER)
+        if (sPokedexView->statsShowNumbers)
         {
             ConvertIntToDecimalStringN(strEV, friendshipBase, STR_CONV_MODE_RIGHT_ALIGN, 3);
             align_x = GetStringRightAlignXOffset(0, strEV, total_x);
@@ -6085,7 +6096,7 @@ static void PrintStatsScreen_Left(u8 taskId)
             PrintStatsScreenTextSmall(WIN_STATS_LEFT, sText_Stats_EggCycles, base_x, base_y + base_y_offset*base_i);
             PrintStatsScreenTextSmall(WIN_STATS_LEFT, gText_ThreeDashes, 78, base_y + base_y_offset*base_i);
         }
-        else if (EGG_CYCLES_NUMBER)
+        else if (sPokedexView->statsShowNumbers)
         {
             PrintStatsScreenTextSmall(WIN_STATS_LEFT, sText_Stats_EggCycles, base_x, base_y + base_y_offset*base_i);
             ConvertIntToDecimalStringN(strEV, eggCycles, STR_CONV_MODE_RIGHT_ALIGN, 2);
