@@ -52,6 +52,7 @@ enum {
     ITEM_MAIN_UNIT_TYPE,
     ITEM_MAIN_MATCHCALL,
     ITEM_MAIN_BRIGHT_NIGHTS,
+    ITEM_MAIN_POKEDEX,
     ITEM_MAIN_FRAMETYPE,
     ITEM_MAIN_COUNT,
 };
@@ -212,6 +213,12 @@ static const u8 *const sChoices_OffOn[] = {
     COMPOUND_STRING("ON"),
 };
 
+// Indexed by OPTIONS_POKEDEX_*
+static const u8 *const sChoices_Pokedex[] = {
+    COMPOUND_STRING("DEFAULT"),
+    COMPOUND_STRING("HARD"),
+};
+
 static const u8 *const sChoices_ShiftSet[] = {
     COMPOUND_STRING("SHIFT"),
     COMPOUND_STRING("SET"),
@@ -326,6 +333,10 @@ static const u8 *const sDesc_MatchCall[] = {
 static const u8 *const sDesc_BrightNights[] = {
     COMPOUND_STRING("Night is at its full darkness."),
     COMPOUND_STRING("Night is lightened, making it\neasier to see outdoors."),
+};
+static const u8 *const sDesc_Pokedex[] = {
+    COMPOUND_STRING("The POKéDEX shows every evolution,\neven {PKMN} you haven't seen yet."),
+    COMPOUND_STRING("Hides evolutions you haven't seen,\nkeeping the POKéDEX spoiler-free."),
 };
 static const u8 *const sDesc_FrameType[] = {
     COMPOUND_STRING("Choose the frame surrounding the\nwindows."),
@@ -459,6 +470,12 @@ static const struct OptionMenuItem sTabItems_Main[] = {
         .descriptions = sDesc_BrightNights,
         .numChoices   = 2,
         .choiceNames  = sChoices_OffOn,
+    },
+    [ITEM_MAIN_POKEDEX] = {
+        .name         = COMPOUND_STRING("POKéDEX"),
+        .descriptions = sDesc_Pokedex,
+        .numChoices   = OPTIONS_POKEDEX_COUNT,
+        .choiceNames  = sChoices_Pokedex,
     },
     [ITEM_MAIN_FRAMETYPE] = {
         .name         = COMPOUND_STRING("FRAME"),
@@ -1103,6 +1120,7 @@ static void Task_Save(u8 taskId)
     cs->unitSystem         = *GetSelectionPtr(TAB_MAIN, ITEM_MAIN_UNIT_TYPE);
     cs->disableMatchCall   = *GetSelectionPtr(TAB_MAIN, ITEM_MAIN_MATCHCALL);
     cs->brighterNights     = *GetSelectionPtr(TAB_MAIN, ITEM_MAIN_BRIGHT_NIGHTS);
+    cs->pokedexLevel       = *GetSelectionPtr(TAB_MAIN, ITEM_MAIN_POKEDEX);
 
     cs->fastIntro          = *GetSelectionPtr(TAB_BATTLE, ITEM_BATTLE_FAST_INTRO);
     cs->fastBattle         = *GetSelectionPtr(TAB_BATTLE, ITEM_BATTLE_FAST_BATTLES);
@@ -1212,6 +1230,7 @@ void CB2_InitOptionMenu(void)
         *GetSelectionPtr(TAB_MAIN, ITEM_MAIN_UNIT_TYPE)      = cs->unitSystem;
         *GetSelectionPtr(TAB_MAIN, ITEM_MAIN_MATCHCALL)    = cs->disableMatchCall;
         *GetSelectionPtr(TAB_MAIN, ITEM_MAIN_BRIGHT_NIGHTS) = cs->brighterNights;
+        *GetSelectionPtr(TAB_MAIN, ITEM_MAIN_POKEDEX)       = cs->pokedexLevel;
 
         *GetSelectionPtr(TAB_BATTLE, ITEM_BATTLE_FAST_INTRO)      = cs->fastIntro;
         *GetSelectionPtr(TAB_BATTLE, ITEM_BATTLE_FAST_BATTLES)    = cs->fastBattle;

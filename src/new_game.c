@@ -140,6 +140,7 @@ void SetDefaultChallengeSettings(void)
     gSaveblock3.challengeSettings.brighterNights = 0;
     gSaveblock3.challengeSettings.battleInfoLevel = OPTIONS_BATTLE_INFO_DEFAULT;
     gSaveblock3.challengeSettings.reservedFoeTypes = 0;
+    gSaveblock3.challengeSettings.pokedexLevel = OPTIONS_POKEDEX_DEFAULT;
 
     // Challenge menu — "RECOMMENDED" defaults
     gSaveblock3.challengeSettings.tx_Mode_Modern_Moves       = 1;
