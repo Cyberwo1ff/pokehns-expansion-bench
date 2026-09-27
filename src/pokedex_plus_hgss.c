@@ -6682,12 +6682,13 @@ static void Task_HandleEvolutionScreenInput(u8 taskId)
     }
 }
 
-// A mon the player has never seen is shown on the evolution screen as a question
-// mark rather than by name or icon, so browsing the screen can't spoil the rest of
-// a line the player hasn't met yet.
-static bool32 IsEvoScreenSpeciesSeen(u32 species)
+// With the POKeDEX option on HARD, a mon the player has never seen is
+// shown on the evolution screen as a question mark rather than by name or icon, so
+// browsing the screen can't spoil the rest of a line the player hasn't met yet.
+static bool32 IsEvoScreenSpeciesHidden(u32 species)
 {
-    return GetSetPokedexFlag(SpeciesToNationalPokedexNum(species), FLAG_GET_SEEN);
+    return gSaveBlock3Ptr->challengeSettings.pokedexLevel == OPTIONS_POKEDEX_HARD
+        && !GetSetPokedexFlag(SpeciesToNationalPokedexNum(species), FLAG_GET_SEEN);
 }
 
 // Returns the index of an already-tagged unknown mon, or numUnknownSpecies if absent.
@@ -6726,7 +6727,7 @@ static const u8 *GetEvoScreenTargetName(u32 species, u32 tier)
     u32 i, j;
     u8 letter = 0;
 
-    if (!HGSS_HIDE_UNSEEN_EVOLUTION_NAMES || IsEvoScreenSpeciesSeen(species))
+    if (!HGSS_HIDE_UNSEEN_EVOLUTION_NAMES || !IsEvoScreenSpeciesHidden(species))
         return GetSpeciesName(species);
 
     i = FindUnknownEvoSpecies(species);
@@ -6757,7 +6758,7 @@ static const u8 *GetEvoScreenSpeciesName(u32 species)
 {
     u32 i;
 
-    if (!HGSS_HIDE_UNSEEN_EVOLUTION_NAMES || IsEvoScreenSpeciesSeen(species))
+    if (!HGSS_HIDE_UNSEEN_EVOLUTION_NAMES || !IsEvoScreenSpeciesHidden(species))
         return GetSpeciesName(species);
 
     i = FindUnknownEvoSpecies(species);
@@ -6771,7 +6772,7 @@ static u8 CreateEvoScreenMonIcon(u32 species, s16 x, s16 y)
 {
     u32 personality;
 
-    if (HGSS_HIDE_UNSEEN_EVOLUTION_ICONS && !IsEvoScreenSpeciesSeen(species))
+    if (HGSS_HIDE_UNSEEN_EVOLUTION_ICONS && IsEvoScreenSpeciesHidden(species))
     {
         if (IndexOfSpritePaletteTag(gMonIconPaletteTable[UNSEEN_MON_ICON_PAL_INDEX].tag) == 0xFF)
             LoadSpritePalette(&gMonIconPaletteTable[UNSEEN_MON_ICON_PAL_INDEX]);

@@ -354,10 +354,14 @@ struct ChallengeSettings
     // Retired: this held the Cv7-only FOE TYPES row (enemyTypeIndicator) before
     // it merged into battleInfoLevel. Kept declared so the save v6 migration can
     // read the old value and then zero it. Once migrated, these bits are
-    // guaranteed 0, so together with the spare bit after them they are the last
-    // 3 clean bits in the struct and the best home for the next setting.
+    // guaranteed 0, so they are the last 2 clean bits in the struct and the
+    // best home for the next setting.
     // Do not delete without first checking that v6 has shipped.
     u8 reservedFoeTypes:2;
+    // Fills the last spare bit of the byte above, so sizeof is unchanged and no
+    // existing field shifts. That bit was never used by any layout, so old
+    // saves read 0 (= DEFAULT, every evolution shown in the Pokedex).
+    u8 pokedexLevel:1;
 };
 
 struct SaveBlock3

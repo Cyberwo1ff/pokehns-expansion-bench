@@ -239,6 +239,11 @@ enum Gender
 #define OPTIONS_BATTLE_INFO_CLASSIC 2   // Neither is ever shown, as the older games played
 #define OPTIONS_BATTLE_INFO_COUNT   3
 
+// Saved raw in pokedexLevel, so 0 must stay DEFAULT (the pre-option behaviour).
+#define OPTIONS_POKEDEX_DEFAULT 0   // Every evolution is named and shown on the evolution screen
+#define OPTIONS_POKEDEX_HARD    1   // Unseen evolutions are masked on the evolution screen
+#define OPTIONS_POKEDEX_COUNT   2
+
 enum __attribute__((packed)) Direction
 {
     DIR_NONE,

@@ -2763,13 +2763,14 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_BIG_NUGGET] =
     {
         .name = ITEM_NAME("BIG NUGGET"),
-    #if I_PRICE >= GEN_7
-        .price = 40000 * TREASURE_FACTOR,
-    #elif I_PRICE == GEN_6
-        .price = 20000,
-    #else
-        .price = 0,
-    #endif
+        //#if I_PRICE >= GEN_7
+        //    .price = 40000 * TREASURE_FACTOR,
+        //#elif I_PRICE == GEN_6
+        //    .price = 20000,
+        //#else
+        //    .price = 0,
+        //#endif
+        .price = 40000,
         .description = COMPOUND_STRING(
             "A big nugget made\n"
             "of gold, sellable\n"
@@ -2817,13 +2818,14 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_BALM_MUSHROOM] =
     {
         .name = ITEM_NAME("BALM MUSHROOM"),
-    #if I_PRICE >= GEN_7
+        //#if I_PRICE >= GEN_7
+        //    .price = 15000 * TREASURE_FACTOR,
+        //#elif I_PRICE == GEN_6
+        //    .price = 12500,
+        //#else
+        //    .price = 0,
+        //#endif
         .price = 15000 * TREASURE_FACTOR,
-    #elif I_PRICE == GEN_6
-        .price = 12500,
-    #else
-        .price = 0,
-    #endif
         .description = sBigMushroomDesc,
         .pocket = POCKET_TREASURES,
         .sortType = ITEM_TYPE_SELLABLE,
@@ -2871,15 +2873,16 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_PEARL_STRING] =
     {
         .name = ITEM_NAME("PEARL STRING"),
-    #if I_PRICE >= GEN_8
-        .price = 20000 * TREASURE_FACTOR,
-    #elif I_PRICE == GEN_7
-        .price = 30000,
-    #elif I_PRICE == GEN_6
-        .price = 15000,
-    #else
-        .price = 0,
-    #endif
+        //#if I_PRICE >= GEN_8
+        //    .price = 20000 * TREASURE_FACTOR,
+        //#elif I_PRICE == GEN_7
+        //    .price = 30000,
+        //#elif I_PRICE == GEN_6
+        //    .price = 15000,
+        //#else
+        //    .price = 0,
+        //#endif
+        .price = 18750,
         .description = COMPOUND_STRING(
             "Very large pearls\n"
             "that would sell at a\n"
@@ -2930,15 +2933,16 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_COMET_SHARD] =
     {
         .name = ITEM_NAME("COMET SHARD"),
-    #if I_PRICE >= GEN_8
-        .price = 25000 * TREASURE_FACTOR,
-    #elif I_PRICE == GEN_7
-        .price = 60000,
-    #elif I_PRICE == GEN_6
-        .price = 30000,
-    #else
-        .price = 0,
-    #endif
+        //#if I_PRICE >= GEN_8
+        //    .price = 25000 * TREASURE_FACTOR,
+        //#elif I_PRICE == GEN_7
+        //    .price = 60000,
+        //#elif I_PRICE == GEN_6
+        //    .price = 30000,
+        //#else
+        //    .price = 0,
+        //#endif
+        .price = 20400,
         .description = COMPOUND_STRING(
             "A comet's shard.\n"
             "It would sell for a\n"
@@ -3171,7 +3175,8 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_RELIC_GOLD] =
     {
         .name = ITEM_NAME("RELIC GOLD"),
-        .price = (I_PRICE >= GEN_6) ? 60000 : 0,
+        //.price = (I_PRICE >= GEN_6) ? 60000 : 0,
+        .price = 60000,
         .description = COMPOUND_STRING(
             "A gold coin used\n"
             "long ago. It sells\n"
@@ -3733,13 +3738,14 @@ const struct ItemInfo gItemsInfo[] =
     },
 
 // Apricorns
-    #if (I_PRICE >= GEN_8 || I_PRICE <= GEN_2)
-        #define APRICORN_PRICE 200
-    #elif I_PRICE >= GEN_5
-        #define APRICORN_PRICE 20
-    #else
-        #define APRICORN_PRICE 0
-    #endif
+    //#if (I_PRICE >= GEN_8 || I_PRICE <= GEN_2)
+    //    #define APRICORN_PRICE 200
+    //#elif I_PRICE >= GEN_5
+    //    #define APRICORN_PRICE 20
+    //#else
+    //    #define APRICORN_PRICE 0
+    //#endif
+    #define APRICORN_PRICE 200
 
     [ITEM_RED_APRICORN] =
     {
@@ -4230,15 +4236,16 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_MOON_STONE] =
     {
         .name = ITEM_NAME("MOON STONE"),
-    #if I_PRICE >= GEN_7
-        .price = 3000,
-    #elif I_PRICE >= GEN_4
-        .price = 2100,
-    #elif I_PRICE == GEN_3
-        .price = 0,
-    #else
-        .price = 10000,
-    #endif
+        //#if I_PRICE >= GEN_7
+        //    .price = 3000,
+        //#elif I_PRICE >= GEN_4
+        //    .price = 2100,
+        //#elif I_PRICE == GEN_3
+        //    .price = 0,
+        //#else
+        //    .price = 10000,
+        //#endif
+        .price = 4000,
         .description = sEvolutionStoneDesc,
         .pocket = POCKET_ITEMS,
         .sortType = ITEM_TYPE_EVOLUTION_STONE,
