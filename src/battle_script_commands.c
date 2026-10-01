@@ -13142,6 +13142,23 @@ void BS_ClearMoveResultFlags(void)
     gBattlescriptCurrInstr = cmd->nextInstr;
 }
 
+// Byte 4 of multihitString is the hit count (PREPARE_BYTE_NUMBER_BUFFER)
+void BS_MultiHitPlurality(void)
+{
+    NATIVE_ARGS();
+
+    if (gBattleScripting.multihitString[4] == 1)
+    {
+        PREPARE_STRING_BUFFER(gBattleTextBuff2, STRINGID_EMPTYSTRING3);
+    }
+    else
+    {
+        PREPARE_STRING_BUFFER(gBattleTextBuff2, STRINGID_S);
+    }
+
+    gBattlescriptCurrInstr = cmd->nextInstr;
+}
+
 void BS_ClearSpecialStatuses(void)
 {
     NATIVE_ARGS();

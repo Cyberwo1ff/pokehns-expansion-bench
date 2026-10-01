@@ -1583,6 +1583,10 @@
 	.2byte \flags
 	.endm
 
+	.macro multihitplurality
+	callnative BS_MultiHitPlurality
+	.endm
+
 	.macro jumpifmoveresultflags flags:req failInstr:req
 	callnative BS_JumpIfMoveResultFlags
 	.2byte \flags
