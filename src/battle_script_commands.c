@@ -1886,7 +1886,10 @@ static void Cmd_critmessage(void)
     {
         if (gSpecialStatuses[gBattlerTarget].criticalHit && !IsBattlerUnaffectedByMove(gBattlerTarget))
         {
-            PrepareStringBattle(STRINGID_CRITICALHIT, gBattlerAttacker);
+            if (IsDoubleSpreadMove())
+                PrepareStringBattle(STRINGID_CRITICALHITONDEF, gBattlerTarget);
+            else
+                PrepareStringBattle(STRINGID_CRITICALHIT, gBattlerAttacker);
 
             TryInitializeTrainerSlideEnemyLandsFirstCriticalHit(gBattlerTarget);
             TryInitializeTrainerSlidePlayerLandsFirstCriticalHit(gBattlerTarget);
@@ -2017,13 +2020,15 @@ static void Cmd_resultmessage(void)
                 else if (ShouldRelyOnTwoFoesMessage(MOVE_RESULT_EXTREMELY_EFFECTIVE))
                     stringId = 0; // Was handled or will be handled as a double string
                 else
-                    stringId = STRINGID_EXTREMELYEFFECTIVE;
+                    stringId = STRINGID_EXTREMELYEFFECTIVEONDEF;
             }
             else if (!gMultiHitCounter)  // Don't print effectiveness on each hit in a multi hit attack
             {
                 stringId = STRINGID_EXTREMELYEFFECTIVE;
             }
-            if (stringId == STRINGID_EXTREMELYEFFECTIVE || stringId == STRINGID_EXTREMELYEFFECTIVETWOFOES)
+            if (stringId == STRINGID_EXTREMELYEFFECTIVE
+             || stringId == STRINGID_EXTREMELYEFFECTIVEONDEF
+             || stringId == STRINGID_EXTREMELYEFFECTIVETWOFOES)
                 TryInitializeTrainerSlidePlayerLandsFirstSuperEffectiveHit(gBattlerTarget);
             if (stringId == STRINGID_EXTREMELYEFFECTIVETWOFOES)
                 TryInitializeTrainerSlidePlayerLandsFirstSuperEffectiveHit(BATTLE_PARTNER(gBattlerTarget));
@@ -2036,13 +2041,15 @@ static void Cmd_resultmessage(void)
                 else if (ShouldRelyOnTwoFoesMessage(MOVE_RESULT_SUPER_EFFECTIVE))
                     stringId = 0; // Was handled or will be handled as a double string
                 else
-                    stringId = STRINGID_SUPEREFFECTIVE;
+                    stringId = STRINGID_SUPEREFFECTIVEONDEF;
             }
             else if (!gMultiHitCounter)  // Don't print effectiveness on each hit in a multi hit attack
             {
                 stringId = STRINGID_SUPEREFFECTIVE;
             }
-            if (stringId == STRINGID_SUPEREFFECTIVE || stringId == STRINGID_SUPEREFFECTIVETWOFOES)
+            if (stringId == STRINGID_SUPEREFFECTIVE
+             || stringId == STRINGID_SUPEREFFECTIVEONDEF
+             || stringId == STRINGID_SUPEREFFECTIVETWOFOES)
                 TryInitializeTrainerSlidePlayerLandsFirstSuperEffectiveHit(gBattlerTarget);
             if (stringId == STRINGID_SUPEREFFECTIVETWOFOES)
                 TryInitializeTrainerSlidePlayerLandsFirstSuperEffectiveHit(BATTLE_PARTNER(gBattlerTarget));
@@ -2055,7 +2062,7 @@ static void Cmd_resultmessage(void)
                 else if (ShouldRelyOnTwoFoesMessage(MOVE_RESULT_NOT_VERY_EFFECTIVE))
                     stringId = 0; // Was handled or will be handled as a double string
                 else
-                    stringId = STRINGID_NOTVERYEFFECTIVE; // Needs a string
+                    stringId = STRINGID_NOTVERYEFFECTIVEONDEF;
             }
             else if (!gMultiHitCounter)
             {
@@ -2070,7 +2077,7 @@ static void Cmd_resultmessage(void)
                 else if (ShouldRelyOnTwoFoesMessage(MOVE_RESULT_MOSTLY_INEFFECTIVE))
                     stringId = 0; // Was handled or will be handled as a double string
                 else
-                    stringId = STRINGID_MOSTLYINEFFECTIVE;
+                    stringId = STRINGID_MOSTLYINEFFECTIVEONDEF;
             }
             else if (!gMultiHitCounter)
             {

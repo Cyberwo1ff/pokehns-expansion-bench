@@ -194,16 +194,20 @@ void BattleTv_SetDataBasedOnString(enum StringID stringId)
         break;
     case STRINGID_NOTVERYEFFECTIVE:
     case STRINGID_NOTVERYEFFECTIVETWOFOES:
+    case STRINGID_NOTVERYEFFECTIVEONDEF:
     case STRINGID_MOSTLYINEFFECTIVE:
     case STRINGID_MOSTLYINEFFECTIVETWOFOES:
+    case STRINGID_MOSTLYINEFFECTIVEONDEF:
         AddMovePoints(PTS_EFFECTIVENESS, moveSlot, 1, 0);
         if (!(gBattleTypeFlags & BATTLE_TYPE_LINK) && GetMonData(defMon, MON_DATA_HP) != 0)
             TrySetBattleSeminarShow();
         break;
     case STRINGID_SUPEREFFECTIVE:
     case STRINGID_SUPEREFFECTIVETWOFOES:
+    case STRINGID_SUPEREFFECTIVEONDEF:
     case STRINGID_EXTREMELYEFFECTIVE:
     case STRINGID_EXTREMELYEFFECTIVETWOFOES:
+    case STRINGID_EXTREMELYEFFECTIVEONDEF:
         AddMovePoints(PTS_EFFECTIVENESS, moveSlot, 0, 0);
         break;
     case STRINGID_PKMNFORESAWATTACK:
@@ -271,6 +275,7 @@ void BattleTv_SetDataBasedOnString(enum StringID stringId)
         gBattleStruct->anyMonHasTransformed = TRUE;
         break;
     case STRINGID_CRITICALHIT:
+    case STRINGID_CRITICALHITONDEF:
         AddMovePoints(PTS_CRITICAL_HIT, moveSlot, 0, 0);
         break;
     case STRINGID_ATTACKERSSTATROSE:
