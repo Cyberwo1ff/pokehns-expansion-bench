@@ -9645,7 +9645,7 @@ static const u8 *const sTypeMatchupsPairLabels[TM_LIST_ROWS_MAX][2] =
 static const struct TypeMatchupsInfoRow sTypeMatchupsInfoRows[] =
 {
     {
-        .symbol = COMPOUND_STRING("{CIRCLE_DOT}"),
+        .symbol = COMPOUND_STRING("{STAR}"),
         .symbolColors = {TEXT_COLOR_TRANSPARENT, 8, 9},
         .multiplier = COMPOUND_STRING("×4"),
         .phrase = COMPOUND_STRING("DOUBLE WEAK TO"),
@@ -9673,7 +9673,7 @@ static const struct TypeMatchupsInfoRow sTypeMatchupsInfoRows[] =
         .meaning = COMPOUND_STRING("Half damage. Target RESISTS it."),
     },
     {
-        .symbol = COMPOUND_STRING("{TRIANGLE}"),
+        .symbol = COMPOUND_STRING("{TRIANGLE_UPSIDE_DOWN}"),
         .symbolColors = {TEXT_COLOR_TRANSPARENT, 12, 13},
         .multiplier = COMPOUND_STRING("×0.25"),
         .phrase = COMPOUND_STRING("DOUBLE RESISTS"),
