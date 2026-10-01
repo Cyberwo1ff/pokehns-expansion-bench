@@ -116,6 +116,7 @@ enum {
     MENU_CATALOG_MOWER,
     MENU_CHANGE_FORM,
     MENU_CHANGE_ABILITY,
+    MENU_RESTORE,
     MENU_PKMN_FOLLOWER,
     MENU_FIELD_MOVES
 };
@@ -193,7 +194,7 @@ struct PartyMenuInternal
     u32 spriteIdCancelPokeball:7;
     u32 messageId:14;
     u8 windowId[3];
-    u8 actions[8];
+    u8 actions[9];
     u8 numActions;
     // In vanilla Emerald, only the first 0xB0 hwords (0x160 bytes) are actually used.
     // However, a full 0x100 hwords (0x200 bytes) are allocated.
@@ -230,6 +231,10 @@ static EWRAM_DATA u16 sPartyMenuItemId = 0;
 EWRAM_DATA u8 gBattlePartyCurrentOrder[PARTY_SIZE / 2] = {0}; // bits 0-3 are the current pos of Slot 1, 4-7 are Slot 2, and so on
 static EWRAM_DATA u8 sInitialLevel = 0;
 static EWRAM_DATA u8 sFinalLevel = 0;
+static EWRAM_DATA MainCallback sRestoreExitCallback = NULL; // Party menu's own exit, kept while RESTORE's bag is open
+static EWRAM_DATA s8 sRestoreSlotId = 0;                    // The Pokémon RESTORE was chosen for
+static EWRAM_DATA u8 sRestorePrevPocket = 0;                // So the field bag still opens on the player's last pocket
+static EWRAM_DATA bool8 sUseItemOnRestoreMon = FALSE;       // Item picked in RESTORE's bag goes straight on sRestoreSlotId
 
 // IWRAM common
 COMMON_DATA void (*gItemUseCB)(u8, TaskFunc) = NULL;
@@ -494,6 +499,10 @@ static void CursorCb_CatalogFan(u8);
 static void CursorCb_CatalogMower(u8);
 static void CursorCb_ChangeForm(u8);
 static void CursorCb_ChangeAbility(u8);
+static void CursorCb_Restore(u8);
+static void CB2_SelectBagItemToRestore(void);
+static void CB2_ReturnToPartyMenuFromRestore(void);
+static void Task_UseItemOnRestoreMon(u8);
 static void CursorCb_PkmnFollower(u8);
 void TryItemHoldFormChange(struct Pokemon *mon, s8 slotId);
 static void ShowMoveSelectWindow(u8 slot);
@@ -2997,6 +3006,9 @@ static void SetPartyMonFieldSelectionActions(struct Pokemon *mons, u8 slotId)
     {
         if (GetMonData(&mons[1], MON_DATA_SPECIES) != SPECIES_NONE)
             AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_SWITCH);
+        // Gen 6 shortcut to use bag items on this Pokémon; not where the bag can't use items or is the Pyramid's own bag
+        if (CurrentBattlePyramidLocation() == PYRAMID_LOCATION_NONE && !InUnionRoom() && !MenuHelpers_IsLinkActive())
+            AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_RESTORE);
         if (ItemIsMail(GetMonData(&mons[slotId], MON_DATA_HELD_ITEM)))
             AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_MAIL);
         else
@@ -3511,6 +3523,36 @@ static void CB2_SelectBagItemToGive(void)
         GoToBagMenu(ITEMMENULOCATION_PARTY, POCKETS_COUNT, CB2_GiveHoldItem);
     else
         GoToBattlePyramidBagMenu(PYRAMIDBAG_LOC_PARTY, CB2_GiveHoldItem);
+}
+
+static void CursorCb_Restore(u8 taskId)
+{
+    PlaySE(SE_SELECT);
+    sRestoreExitCallback = gPartyMenu.exitCallback;
+    sRestoreSlotId = gPartyMenu.slotId;
+    sPartyMenuInternal->exitCallback = CB2_SelectBagItemToRestore;
+    Task_ClosePartyMenu(taskId);
+}
+
+static void CB2_SelectBagItemToRestore(void)
+{
+    sRestorePrevPocket = gBagPosition.pocket;
+    GoToBagMenu(ITEMMENULOCATION_PARTY_RESTORE, POCKET_MEDICINE, CB2_ReturnToPartyMenuFromRestore);
+}
+
+// Called by the bag when an item is picked from RESTORE's bag
+void SetUseItemOnRestoreMon(void)
+{
+    sUseItemOnRestoreMon = TRUE;
+}
+
+// Using items re-inits the party menu for the bag, so it's reopened with the original action and exit
+static void CB2_ReturnToPartyMenuFromRestore(void)
+{
+    sUseItemOnRestoreMon = FALSE;
+    gBagPosition.pocket = sRestorePrevPocket;
+    gPartyMenu.slotId = sRestoreSlotId; // The cursor may have been left on another slot after using an item
+    InitPartyMenu(PARTY_MENU_TYPE_FIELD, KEEP_PARTY_LAYOUT, PARTY_ACTION_CHOOSE_MON, TRUE, PARTY_MSG_NONE, Task_TryCreateSelectionWindow, sRestoreExitCallback);
 }
 
 static void CB2_GiveHoldItem(void)
@@ -4752,6 +4794,12 @@ void CB2_ShowPartyMenuForItemUse(void)
         task = Task_SetSacredAshCB;
         msgId = PARTY_MSG_NONE;
     }
+    else if (sUseItemOnRestoreMon && gBagPosition.location == ITEMMENULOCATION_PARTY_RESTORE && !gMain.inBattle)
+    {
+        gPartyMenu.slotId = sRestoreSlotId;
+        task = Task_UseItemOnRestoreMon;
+        msgId = PARTY_MSG_NONE;
+    }
     else
     {
         if (GetItemPocket(gSpecialVar_ItemId) == POCKET_TM_HM)
@@ -4761,8 +4809,20 @@ void CB2_ShowPartyMenuForItemUse(void)
 
         task = Task_HandleChooseMonInput;
     }
+    // Only the first use skips the choice, e.g. a Rare Candy evolution comes back through here
+    sUseItemOnRestoreMon = FALSE;
 
     InitPartyMenu(menuType, partyLayout, PARTY_ACTION_USE_ITEM, TRUE, msgId, task, callback);
+}
+
+// RESTORE already chose the Pokémon, so act as if it was picked from "Use on which Pokémon?"
+static void Task_UseItemOnRestoreMon(u8 taskId)
+{
+    if (!gPaletteFade.active)
+    {
+        gTasks[taskId].func = Task_HandleChooseMonInput;
+        gItemUseCB(taskId, Task_ClosePartyMenuAfterText);
+    }
 }
 
 static void CB2_ReturnToBagMenu(void)

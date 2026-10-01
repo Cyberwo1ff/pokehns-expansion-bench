@@ -216,6 +216,7 @@ static void Task_ItemContext_GiveToParty(u8);
 static void Task_ItemContext_Sell(u8);
 static void Task_ItemContext_Deposit(u8);
 static void Task_ItemContext_GiveToPC(u8);
+static void Task_ItemContext_UseOnPartyMon(u8);
 static void ConfirmToss(u8);
 static void CancelToss(u8);
 static void ConfirmSell(u8);
@@ -413,6 +414,7 @@ static const TaskFunc sContextMenuFuncs[] = {
     [ITEMMENULOCATION_WALLY] =                  NULL,
     [ITEMMENULOCATION_PCBOX] =                  Task_ItemContext_GiveToPC,
     [ITEMMENULOCATION_BERRY_TREE_MULCH] =       Task_FadeAndCloseBagMenuIfMulch,
+    [ITEMMENULOCATION_PARTY_RESTORE] =          Task_ItemContext_UseOnPartyMon,
 };
 
 static const struct YesNoFuncTable sYesNoTossFunctions = {ConfirmToss, CancelToss};
@@ -2250,6 +2252,26 @@ static void Task_ItemContext_GiveToPC(u8 taskId)
         gTasks[taskId].func = Task_FadeAndCloseBagMenu;
     else
         PrintItemCantBeHeld(taskId);
+}
+
+// Selected an item in the bag opened by RESTORE in the party menu, so use it on that Pokémon.
+// Only items that are used on a Pokémon from the field bag; berries skip the planting check.
+static void Task_ItemContext_UseOnPartyMon(u8 taskId)
+{
+    enum ItemType type = GetItemType(gSpecialVar_ItemId);
+
+    if (GetItemFieldFunc(gSpecialVar_ItemId) == NULL
+     || (type != ITEM_USE_PARTY_MENU && type != ITEM_USE_PARTY_MENU_MOVES))
+    {
+        DisplayDadsAdviceCannotUseItemMessage(taskId, FALSE);
+    }
+    else
+    {
+        SetUseItemOnRestoreMon();
+        FillWindowPixelBuffer(WIN_DESCRIPTION, PIXEL_FILL(0));
+        ScheduleBgCopyTilemapToVram(0);
+        GetItemFieldFunc(gSpecialVar_ItemId)(taskId);
+    }
 }
 
 #define tUsingRegisteredKeyItem data[3] // See usage in item_use.c
