@@ -14459,6 +14459,59 @@ void BS_UpdateAbilityPopup(void)
     gBattlescriptCurrInstr = cmd->nextInstr;
 }
 
+// Healing items that are never used up (Leftovers every turn) only show their pop-up the first time
+// per stay on the field. Everything else shows it every time, including a berry brought back by
+// Harvest or Recycle, since each activation of a consumable is a fresh item.
+static bool32 IsItemPopUpOncePerStay(enum BattlerId battler, enum Item item)
+{
+    switch (GetItemHoldEffect(item))
+    {
+    case HOLD_EFFECT_LEFTOVERS:
+    case HOLD_EFFECT_SHELL_BELL:
+        return TRUE;
+    case HOLD_EFFECT_BLACK_SLUDGE:
+        return IS_BATTLER_OF_TYPE(battler, TYPE_POISON); // Heals Poison types, hurts everyone else
+    default:
+        return FALSE;
+    }
+}
+
+void BS_ShowItemPopup(void)
+{
+    NATIVE_ARGS(u8 battler, const u8 *jumpInstr);
+
+    enum BattlerId battler = GetBattlerForBattleScript(cmd->battler);
+    bool32 oncePerStay;
+
+    // Only for the battler's own held item, so a flung or stolen item gets no banner
+    if (gLastUsedItem == ITEM_NONE || gBattleMons[battler].item != gLastUsedItem)
+    {
+        gBattlescriptCurrInstr = cmd->jumpInstr;
+        return;
+    }
+
+    oncePerStay = IsItemPopUpOncePerStay(battler, gLastUsedItem);
+    if (oncePerStay && gBattleStruct->battlerState[battler].lastItemPopUp == gLastUsedItem)
+    {
+        gBattlescriptCurrInstr = cmd->jumpInstr;
+        return;
+    }
+
+    // The item and ability pop-ups share each battler's banner, so let one that's still up leave first
+    if (IsBattlerPopUpOnScreen(battler))
+    {
+        if (gBattleScripting.fixedPopup)
+            gBattlescriptCurrInstr = cmd->jumpInstr;
+        return;
+    }
+
+    gBattleStruct->battlerState[battler].activeAbilityPopUps = FALSE; // In case a sprite reset left it set
+    if (oncePerStay)
+        gBattleStruct->battlerState[battler].lastItemPopUp = gLastUsedItem;
+    CreateItemPopUp(battler);
+    gBattlescriptCurrInstr = cmd->nextInstr;
+}
+
 void BS_JumpIfTargetAlly(void)
 {
     NATIVE_ARGS(const u8 *jumpInstr);

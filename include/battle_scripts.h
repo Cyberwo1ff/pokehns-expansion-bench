@@ -333,6 +333,7 @@ extern const u8 BattleScript_ItemHurtEnd2[];
 extern const u8 BattleScript_AirBalloonMsgInRet[];
 extern const u8 BattleScript_AirBalloonMsgPop[];
 extern const u8 BattleScript_ItemHurtRet[];
+extern const u8 BattleScript_LifeOrbActivates[];
 extern const u8 BattleScript_ToxicOrb[];
 extern const u8 BattleScript_FlameOrb[];
 extern const u8 BattleScript_MoveEffectIncinerate[];

@@ -2000,6 +2000,12 @@
 	callnative BS_ShowAbilityPopup
 	.endm
 
+	.macro showitempopup battler:req, jumpInstr:req
+	callnative BS_ShowItemPopup
+	.byte \battler
+	.4byte \jumpInstr
+	.endm
+
 	.macro updateabilitypopup
 	callnative BS_UpdateAbilityPopup
 	.endm
