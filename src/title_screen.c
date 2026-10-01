@@ -787,7 +787,7 @@ static void Task_TitleScreenPhase2(u8 taskId)
         // HnS shows the version string in this banner rather than copyright text.
         // It only fits on one line of press_start.png if it stays in the left part
         // of the banner's tile strip, so nudge the banner right to centre the text.
-        CreateCopyrightBanner(START_BANNER_X + 17, 148);
+        CreateCopyrightBanner(START_BANNER_X + 23, 148);
         #else
         CreateCopyrightBanner(START_BANNER_X, 148);
         #endif
