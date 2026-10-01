@@ -888,6 +888,10 @@ const u8 *const gBattleStringsTable[STRINGID_COUNT] =
     [STRINGID_ZENMODEENDED]                         = COMPOUND_STRING("{B_SCR_ABILITY} ended!"),
     [STRINGID_WILDPKMNDROPPEDITEM]                  = COMPOUND_STRING("The wild Pokémon dropped\nits {B_LAST_ITEM}!\p"),
     [STRINGID_DROPPEDITEMBAGFULL]                   = COMPOUND_STRING("The wild Pokémon dropped an item,\nbut your Bag is full!\p"),
+    [STRINGID_EXTREMELYEFFECTIVE]                   = COMPOUND_STRING("It's extremely effective!"),
+    [STRINGID_MOSTLYINEFFECTIVE]                    = COMPOUND_STRING("It's mostly ineffective…"),
+    [STRINGID_EXTREMELYEFFECTIVETWOFOES]            = COMPOUND_STRING("It's extremely effective on {B_DEF_NAME_WITH_PREFIX2} and {B_DEF_PARTNER_NAME}!"),
+    [STRINGID_MOSTLYINEFFECTIVETWOFOES]             = COMPOUND_STRING("It's mostly ineffective on {B_DEF_NAME_WITH_PREFIX2} and {B_DEF_PARTNER_NAME}…"),
 };
 
 const u16 gTrainerUsedItemStringIds[] =
