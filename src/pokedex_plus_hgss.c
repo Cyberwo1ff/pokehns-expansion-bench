@@ -9401,10 +9401,12 @@ static const u8 sTypeMatchupsColor_Red[] = {TEXT_COLOR_TRANSPARENT, 7, 6};
 static const u8 sText_TypeMatchups_Choose[] = _("Choose a type to see its matchups.");
 static const u8 sText_TypeMatchups_Stacks[] = _("Damage stacks across both types.");
 static const u8 sText_TypeMatchups_InfoTitle[] = _("Type Effectiveness Guide");
-static const u8 sText_TypeMatchups_InfoDualTypes[] = _("Dual Types: If either type is IMMUNE, it's ×0.");
-static const u8 sText_TypeMatchups_Attacking[] = _("Damage MOVES deal to each type");
-static const u8 sText_TypeMatchups_Defending[] = _("Damage POKéMON takes from each type");
-static const u8 sText_TypeMatchups_TypeMoves[] = _("Damage {STR_VAR_1} MOVES deal to each type");
+// IMMUNE in black as on the rows below, ×0 in their multipliers' red
+static const u8 sText_TypeMatchups_InfoDualTypes[] = _("Dual Types: If either type is {COLOR 15}IMMUNE{COLOR 5}, it's {COLOR 7}{SHADOW 6}×0{COLOR 5}{SHADOW 3}.");
+// What takes or deals the damage is in black, as {COLOR 15} within the grey
+static const u8 sText_TypeMatchups_Attacking[] = _("Damage {COLOR 15}MOVES{COLOR 5} deal to each type");
+static const u8 sText_TypeMatchups_Defending[] = _("Damage {COLOR 15}POKéMON{COLOR 5} takes from each type");
+static const u8 sText_TypeMatchups_TypeMoves[] = _("Damage {COLOR 15}{STR_VAR_1} MOVES{COLOR 5} deal to each type");
 static const u8 sText_TypeMatchups_Slash[] = _("/");
 static const u8 sText_TypeMatchups_None[] = _("None");
 // Hints run B, A, D-pad, then anything else
