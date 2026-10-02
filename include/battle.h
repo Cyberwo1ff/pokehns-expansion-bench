@@ -507,8 +507,10 @@ struct BattlerState
     u16 switchIn:1;
     u16 fainted:1;
     u16 isFirstTurn:2;
-    u16 padding:12;
+    u16 lastItemPopUp:12; // Leftovers-type item whose pop-up has shown since this battler came in, so repeats only print their message
 };
+
+STATIC_ASSERT(ITEMS_COUNT <= (1 << 12), LastItemPopUpTooSmall)
 
 struct PartyState
 {

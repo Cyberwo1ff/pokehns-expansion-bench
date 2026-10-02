@@ -1583,6 +1583,10 @@
 	.2byte \flags
 	.endm
 
+	.macro multihitplurality
+	callnative BS_MultiHitPlurality
+	.endm
+
 	.macro jumpifmoveresultflags flags:req failInstr:req
 	callnative BS_JumpIfMoveResultFlags
 	.2byte \flags
@@ -1994,6 +1998,12 @@
 
 	.macro showabilitypopup
 	callnative BS_ShowAbilityPopup
+	.endm
+
+	.macro showitempopup battler:req, jumpInstr:req
+	callnative BS_ShowItemPopup
+	.byte \battler
+	.4byte \jumpInstr
 	.endm
 
 	.macro updateabilitypopup

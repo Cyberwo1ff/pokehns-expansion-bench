@@ -3209,6 +3209,7 @@ static void BattleStartClearSetData(void)
     for (i = 0; i < MAX_BATTLERS_COUNT; i++)
     {
         gBattleStruct->battlerState[i].isFirstTurn = 2;
+        gBattleStruct->battlerState[i].lastItemPopUp = ITEM_NONE;
         gLastMoves[i] = MOVE_NONE;
         gLastLandedMoves[i] = MOVE_NONE;
         gLastHitByType[i] = 0;
@@ -3409,6 +3410,7 @@ void SwitchInClearSetData(enum BattlerId battler, struct Volatiles *volatilesCop
 
     gBattleStruct->moveResultFlags[battler] = 0;
     gBattleStruct->battlerState[battler].isFirstTurn = 2;
+    gBattleStruct->battlerState[battler].lastItemPopUp = ITEM_NONE;
     gBattleStruct->battlerState[battler].fainted = FALSE;
     gBattleMons[battler].volatiles.truantSwitchInHack = volatilesCopy->truantSwitchInHack;
     gLastMoves[battler] = MOVE_NONE;
@@ -3520,6 +3522,7 @@ const u8* FaintClearSetData(enum BattlerId battler)
     gProtectStructs[battler].pranksterElevated = FALSE;
 
     gBattleStruct->battlerState[battler].isFirstTurn = 2;
+    gBattleStruct->battlerState[battler].lastItemPopUp = ITEM_NONE;
 
     gLastMoves[battler] = MOVE_NONE;
     gLastLandedMoves[battler] = MOVE_NONE;
