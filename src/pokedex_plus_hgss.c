@@ -9282,7 +9282,7 @@ static void FillCryMeterWindowTilemapWithBg(void)
 #define TM_LIST_WIN_Y       (TM_LIST_TOP - TM_MAIN_WIN_Y)
 #define TM_TEXT_PAL         6    // BG palette for WIN_TM_MAIN: the dex text colours plus the battle symbol colours
 #define TM_BAR_FIRST_TILE   0x60 // bar tiles load straight after tileset_menu2's 96 tiles
-#define TM_BG1_FIRST_TILE   0x130 // BG1's windows sit after the bar tileset's 208 tiles, padding included (0x60-0x12F)
+#define TM_BG1_FIRST_TILE   0x140 // BG1's windows sit after the bar tileset's 224 tiles, padding included (0x60-0x13F)
 #define TM_GREY_ICON_PAL    15   // OBJ palette for a greyed-out icon, after the icons' own 12-14
 #define TAG_TYPE_MATCHUPS_CURSOR 4099
 #define TM_NO_HOLD          0xFF
@@ -9334,7 +9334,8 @@ enum
     TM_BAR_PAIR_DEFENDING, // DEFENDING / TYPE 1 / TYPE 2, one bar per active tab
     TM_BAR_PAIR_TYPE_1,
     TM_BAR_PAIR_TYPE_2,
-    TM_BAR_DEFENDING_ONLY, // no tabs: opened from a species, the screen only shows what hurts it
+    TM_BAR_SPECIES_DEFENDING, // DEFENDING / INFO: opened from a species, what hurts it and what the terms mean
+    TM_BAR_SPECIES_INFO,
 };
 
 struct TypeMatchupsView
@@ -9591,6 +9592,7 @@ static void Task_LoadTypeMatchupsScreen(u8 taskId);
 static void Task_HandleTypeMatchupsPickerInput(u8 taskId);
 static void Task_HandleTypeMatchupsPageInput(u8 taskId);
 static void Task_HandleTypeMatchupsPairInput(u8 taskId);
+static void Task_HandleTypeMatchupsSpeciesInfoInput(u8 taskId);
 static void Task_ExitTypeMatchups(u8 taskId);
 static void TypeMatchups_DrawPicker(void);
 
@@ -10033,6 +10035,17 @@ static void TypeMatchups_DrawPicker(void)
     TypeMatchups_CopyWindowsToVram();
 }
 
+// Opened from a species, the matchups sit beside the INFO tab, so terms like DOUBLE WEAK TO
+// are explained there too
+static void TypeMatchups_DrawSpeciesInfo(void)
+{
+    TypeMatchups_HideSprites();
+    TypeMatchups_LoadBar(TM_BAR_SPECIES_INFO);
+    TypeMatchups_DrawInfo();
+    TypeMatchups_DrawNav(sText_TypeMatchups_NavScroll);
+    TypeMatchups_CopyWindowsToVram();
+}
+
 static u32 TypeMatchups_BuildSingleRows(struct TypeMatchupsListRow *rows, u32 type, u32 page)
 {
     u32 i, row;
@@ -10110,10 +10123,8 @@ static void TypeMatchups_DrawPage(void)
     u32 page = sTypeMatchups->page;
 
     TypeMatchups_HideSprites();
-    // Opened from a species, the screen only answers "what hurts this thing", so the page
-    // has no ATTACKING tab to switch to and uses the tabless bar
     if (sTypeMatchups->seedMode == TM_SEED_SINGLE)
-        TypeMatchups_LoadBar(TM_BAR_DEFENDING_ONLY);
+        TypeMatchups_LoadBar(TM_BAR_SPECIES_DEFENDING);
     else
         TypeMatchups_LoadBar(page == TM_PAGE_ATTACKING ? TM_BAR_ATTACKING : TM_BAR_DEFENDING);
     TypeMatchups_DrawTopPanel(sTypeMatchups->types[sTypeMatchups->cursor],
@@ -10137,7 +10148,7 @@ static void TypeMatchups_DrawPairPage(void)
 
     TypeMatchups_HideSprites();
     if (sTypeMatchups->seedMode == TM_SEED_PAIR)
-        TypeMatchups_LoadBar(TM_BAR_DEFENDING_ONLY);
+        TypeMatchups_LoadBar(TM_BAR_SPECIES_DEFENDING);
     else
         TypeMatchups_LoadBar(TM_BAR_PAIR_DEFENDING + tab);
     if (tab == TM_PAIR_DEFENDING)
@@ -10477,6 +10488,12 @@ static void Task_HandleTypeMatchupsPageInput(u8 taskId)
         TypeMatchups_DrawPage();
         PlaySE(SE_DEX_PAGE);
     }
+    else if (JOY_NEW(R_BUTTON) && sTypeMatchups->seedMode == TM_SEED_SINGLE)
+    {
+        TypeMatchups_DrawSpeciesInfo();
+        PlaySE(SE_DEX_PAGE);
+        gTasks[taskId].func = Task_HandleTypeMatchupsSpeciesInfoInput;
+    }
     // Steps through the grid order without wrapping; the picker cursor follows. Opened
     // from a species there is nothing to step through, only that species' own type.
     else if (JOY_NEW(DPAD_LEFT) && sTypeMatchups->cursor > 0 && sTypeMatchups->seedMode != TM_SEED_SINGLE)
@@ -10516,6 +10533,35 @@ static void Task_HandleTypeMatchupsPairInput(u8 taskId)
         sTypeMatchups->pairTab++;
         TypeMatchups_DrawPairPage();
         PlaySE(SE_DEX_PAGE);
+    }
+    else if (JOY_NEW(R_BUTTON) && sTypeMatchups->seedMode == TM_SEED_PAIR)
+    {
+        TypeMatchups_DrawSpeciesInfo();
+        PlaySE(SE_DEX_PAGE);
+        gTasks[taskId].func = Task_HandleTypeMatchupsSpeciesInfoInput;
+    }
+    else
+    {
+        TypeMatchups_HandleScroll();
+    }
+}
+
+// The INFO tab beside a species' DEFENDING page; L or B goes back to that page
+static void Task_HandleTypeMatchupsSpeciesInfoInput(u8 taskId)
+{
+    if (JOY_NEW(L_BUTTON | B_BUTTON))
+    {
+        PlaySE(SE_DEX_PAGE);
+        if (sTypeMatchups->seedMode == TM_SEED_PAIR)
+        {
+            TypeMatchups_DrawPairPage();
+            gTasks[taskId].func = Task_HandleTypeMatchupsPairInput;
+        }
+        else
+        {
+            TypeMatchups_DrawPage();
+            gTasks[taskId].func = Task_HandleTypeMatchupsPageInput;
+        }
     }
     else
     {
