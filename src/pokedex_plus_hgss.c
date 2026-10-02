@@ -9450,8 +9450,9 @@ static void FillCryMeterWindowTilemapWithBg(void)
 
 // A picker (TYPE MATCHUPS / INFO tabs, switched with L/R) and a matchup page
 // (ATTACKING / DEFENDING tabs) for one type, reached from the list's start menu.
-// START holds a type; picking a second one opens a pairing page, where both charts
-// stack and ×4 / ×0.25 show up as DOUBLE rows.
+// START holds a type; picking a second one opens a pairing page. Its DEFENDING tab stacks
+// both charts, so ×4 / ×0.25 show up as DOUBLE rows; TYPE 1 and TYPE 2 are each type's
+// own attacking chart, since a move only ever has one type.
 // Frame and panels are the evo screen's; the tab bars are their own tiles.
 // The row list lives alone on BG2 and scrolls with BG2VOFS, while WIN0 clips both
 // that layer and the icon sprites to the panel, so rows cut off mid-icon at its edges.
@@ -9497,7 +9498,8 @@ static void FillCryMeterWindowTilemapWithBg(void)
 #define TM_LIST_WIN_Y       (TM_LIST_TOP - TM_MAIN_WIN_Y)
 #define TM_TEXT_PAL         6    // BG palette for WIN_TM_MAIN: the dex text colours plus the battle symbol colours
 #define TM_BAR_FIRST_TILE   0x60 // bar tiles load straight after tileset_menu2's 96 tiles
-#define TM_BG1_FIRST_TILE   0x100 // BG1's windows sit after the bar tileset's 160 tiles, padding included (0x60-0xFF)
+#define TM_BG1_FIRST_TILE   0x130 // BG1's windows sit after the bar tileset's 208 tiles, padding included (0x60-0x12F)
+#define TM_GREY_ICON_PAL    15   // OBJ palette for a greyed-out icon, after the icons' own 12-14
 #define TAG_TYPE_MATCHUPS_CURSOR 4099
 #define TM_NO_HOLD          0xFF
 #define TYPE_INFO_PALETTE_NUM_OFFSET -1 // same palette shift as the info screen's type icons
@@ -9522,6 +9524,14 @@ enum
     TM_PAGE_DEFENDING,
 };
 
+// The pairing page's tabs, left to right
+enum
+{
+    TM_PAIR_DEFENDING,
+    TM_PAIR_TYPE_1,
+    TM_PAIR_TYPE_2,
+};
+
 // How the screen was opened: from the picker, or seeded with a species' typing
 enum
 {
@@ -9537,8 +9547,10 @@ enum
     TM_BAR_INFO,
     TM_BAR_ATTACKING,      // DEFENDING / ATTACKING, the named tab active
     TM_BAR_DEFENDING,
-    TM_BAR_PAIRING,
-    TM_BAR_DEFENDING_ONLY,
+    TM_BAR_PAIR_DEFENDING, // DEFENDING / TYPE 1 / TYPE 2, one bar per active tab
+    TM_BAR_PAIR_TYPE_1,
+    TM_BAR_PAIR_TYPE_2,
+    TM_BAR_DEFENDING_ONLY, // no tabs: opened from a species, the screen only shows what hurts it
 };
 
 struct TypeMatchupsView
@@ -9550,6 +9562,7 @@ struct TypeMatchupsView
     u8 tab;
     u8 page;
     u8 seedMode;
+    u8 pairTab;
     u8 listIconCount;
     s16 listHeight;
     s16 scroll;
@@ -9558,7 +9571,6 @@ struct TypeMatchupsView
     u8 iconSpriteIds[TM_TYPE_COUNT + 2]; // list or grid icons, then the top panel's one or two
     u8 cursorSpriteId;
     u8 heldSpriteId;
-    u8 pairName[32];
 };
 
 // One band of the list: its label (one or two lines) and the types in it
@@ -9607,6 +9619,8 @@ static const u8 sText_TypeMatchups_InfoTitle[] = _("Type Effectiveness Guide");
 static const u8 sText_TypeMatchups_InfoDualTypes[] = _("Dual Types: If either type is IMMUNE, it's ×0.");
 static const u8 sText_TypeMatchups_Attacking[] = _("Damage MOVES deal to each type");
 static const u8 sText_TypeMatchups_Defending[] = _("Damage POKéMON takes from each type");
+static const u8 sText_TypeMatchups_TypeMoves[] = _("Damage {STR_VAR_1} MOVES deal to each type");
+static const u8 sText_TypeMatchups_Slash[] = _("/");
 static const u8 sText_TypeMatchups_None[] = _("None");
 // Hints run B, A, D-pad, then anything else
 static const u8 sText_TypeMatchups_NavPicker[] = _("{B_BUTTON} BACK  {A_BUTTON} VIEW  {DPAD_NONE} MOVE  {SELECT_BUTTON} PAIR");
@@ -10071,19 +10085,38 @@ static void TypeMatchups_DrawTopPanel(u32 type, const u8 *description)
     TypeMatchups_ShowPanelIcon(TM_TYPE_COUNT, type, TM_PANEL_ICON_X, TM_PANEL_ICON_Y);
 }
 
-// Both icons side by side, then "FIRE/STEEL"
-static void TypeMatchups_DrawPairPanel(u32 first, u32 second, const u8 *description)
+// The icon takes a greyscale copy of its own palette
+static void TypeMatchups_GreyPanelIcon(u32 slot, u32 type)
 {
-    u8 *end;
+    u16 colors[16];
+
+    CpuCopy16(&gPlttBufferUnfaded[OBJ_PLTT_ID(gTypesInfo[type].palette + TYPE_INFO_PALETTE_NUM_OFFSET)], colors, sizeof(colors));
+    TintPalette_GrayScale(colors, ARRAY_COUNT(colors));
+    LoadPalette(colors, OBJ_PLTT_ID(TM_GREY_ICON_PAL), PLTT_SIZE_4BPP);
+    gSprites[sTypeMatchups->iconSpriteIds[slot]].oam.paletteNum = TM_GREY_ICON_PAL;
+}
+
+// Both icons side by side, then "FIRE/FLYING". greyed (TYPE_NONE for neither) is the type
+// a pairing's TYPE tab isn't about: its icon and its half of the name are greyed out.
+static void TypeMatchups_DrawPairPanel(u32 first, u32 second, const u8 *description, u32 greyed)
+{
+    u32 x = TM_PANEL_PAIR_NAME_X;
 
     TypeMatchups_ClearTopPanel();
-    end = StringCopy(sTypeMatchups->pairName, gTypesInfo[first].name);
-    *end++ = CHAR_SLASH;
-    StringCopy(end, gTypesInfo[second].name);
-    TypeMatchups_Print(WIN_TM_TOP, FONT_NORMAL, TM_PANEL_PAIR_NAME_X, TM_PANEL_ROW_Y, sTypeMatchupsColor_Black, sTypeMatchups->pairName);
+    TypeMatchups_Print(WIN_TM_TOP, FONT_NORMAL, x, TM_PANEL_ROW_Y,
+                       greyed == first ? sTypeMatchupsColor_Gray : sTypeMatchupsColor_Black, gTypesInfo[first].name);
+    x += GetStringWidth(FONT_NORMAL, gTypesInfo[first].name, 0);
+    TypeMatchups_Print(WIN_TM_TOP, FONT_NORMAL, x, TM_PANEL_ROW_Y, sTypeMatchupsColor_Black, sText_TypeMatchups_Slash);
+    x += GetStringWidth(FONT_NORMAL, sText_TypeMatchups_Slash, 0);
+    TypeMatchups_Print(WIN_TM_TOP, FONT_NORMAL, x, TM_PANEL_ROW_Y,
+                       greyed == second ? sTypeMatchupsColor_Gray : sTypeMatchupsColor_Black, gTypesInfo[second].name);
     TypeMatchups_Print(WIN_TM_TOP, FONT_SMALL, TM_PANEL_TEXT_X, TM_PANEL_TEXT_Y, sTypeMatchupsColor_Gray, description);
     TypeMatchups_ShowPanelIcon(TM_TYPE_COUNT, first, TM_PANEL_ICON_X, TM_PANEL_ICON_Y);
     TypeMatchups_ShowPanelIcon(TM_TYPE_COUNT + 1, second, TM_PANEL_ICON_X + 36, TM_PANEL_ICON_Y);
+    if (greyed == first)
+        TypeMatchups_GreyPanelIcon(TM_TYPE_COUNT, first);
+    else if (greyed == second)
+        TypeMatchups_GreyPanelIcon(TM_TYPE_COUNT + 1, second);
 }
 
 static void TypeMatchups_DrawNav(const u8 *str)
@@ -10117,7 +10150,7 @@ static void TypeMatchups_UpdatePickerPanel(void)
     if (held != TM_NO_HOLD && held != cursor)
     {
         TypeMatchups_DrawPairPanel(sTypeMatchups->types[held], sTypeMatchups->types[cursor],
-                                   sText_TypeMatchups_Stacks);
+                                   sText_TypeMatchups_Stacks, TYPE_NONE);
     }
     else
     {
@@ -10216,11 +10249,9 @@ static void TypeMatchups_DrawPicker(void)
     TypeMatchups_CopyWindowsToVram();
 }
 
-static u32 TypeMatchups_BuildSingleRows(struct TypeMatchupsListRow *rows)
+static u32 TypeMatchups_BuildSingleRows(struct TypeMatchupsListRow *rows, u32 type, u32 page)
 {
     u32 i, row;
-    u32 type = sTypeMatchups->types[sTypeMatchups->cursor];
-    u32 page = sTypeMatchups->page;
 
     for (i = 0; i < 3; i++)
     {
@@ -10303,7 +10334,7 @@ static void TypeMatchups_DrawPage(void)
         TypeMatchups_LoadBar(page == TM_PAGE_ATTACKING ? TM_BAR_ATTACKING : TM_BAR_DEFENDING);
     TypeMatchups_DrawTopPanel(sTypeMatchups->types[sTypeMatchups->cursor],
                               page == TM_PAGE_ATTACKING ? sText_TypeMatchups_Attacking : sText_TypeMatchups_Defending);
-    TypeMatchups_DrawList(rows, TypeMatchups_BuildSingleRows(rows));
+    TypeMatchups_DrawList(rows, TypeMatchups_BuildSingleRows(rows, sTypeMatchups->types[sTypeMatchups->cursor], page));
     if (sTypeMatchups->seedMode == TM_SEED_SINGLE)
         TypeMatchups_DrawNav(sTypeMatchups->listHeight > TM_LIST_HEIGHT
                              ? sText_TypeMatchups_NavScroll : sText_TypeMatchups_NavBack);
@@ -10316,12 +10347,29 @@ static void TypeMatchups_DrawPage(void)
 static void TypeMatchups_DrawPairPage(void)
 {
     struct TypeMatchupsListRow rows[TM_LIST_ROWS_MAX];
+    u32 first = sTypeMatchups->types[sTypeMatchups->held];
+    u32 second = sTypeMatchups->types[sTypeMatchups->cursor];
+    u32 tab = sTypeMatchups->pairTab;
 
     TypeMatchups_HideSprites();
-    TypeMatchups_LoadBar(TM_BAR_PAIRING);
-    TypeMatchups_DrawPairPanel(sTypeMatchups->types[sTypeMatchups->held],
-                               sTypeMatchups->types[sTypeMatchups->cursor], sText_TypeMatchups_Defending);
-    TypeMatchups_DrawList(rows, TypeMatchups_BuildPairRows(rows));
+    if (sTypeMatchups->seedMode == TM_SEED_PAIR)
+        TypeMatchups_LoadBar(TM_BAR_DEFENDING_ONLY);
+    else
+        TypeMatchups_LoadBar(TM_BAR_PAIR_DEFENDING + tab);
+    if (tab == TM_PAIR_DEFENDING)
+    {
+        TypeMatchups_DrawPairPanel(first, second, sText_TypeMatchups_Defending, TYPE_NONE);
+        TypeMatchups_DrawList(rows, TypeMatchups_BuildPairRows(rows));
+    }
+    else
+    {
+        u32 type = (tab == TM_PAIR_TYPE_1) ? first : second;
+
+        StringCopy(gStringVar1, gTypesInfo[type].name);
+        StringExpandPlaceholders(gStringVar4, sText_TypeMatchups_TypeMoves);
+        TypeMatchups_DrawPairPanel(first, second, gStringVar4, (type == first) ? second : first);
+        TypeMatchups_DrawList(rows, TypeMatchups_BuildSingleRows(rows, type, TM_PAGE_ATTACKING));
+    }
     TypeMatchups_DrawNav(sTypeMatchups->listHeight > TM_LIST_HEIGHT
                          ? sText_TypeMatchups_NavScroll : sText_TypeMatchups_NavBack);
     TypeMatchups_CopyWindowsToVram();
@@ -10419,6 +10467,7 @@ static void TypeMatchups_ApplySeed(void)
         // The pair panel prints the held type first, so it takes the species' first type
         sTypeMatchups->held = first;
         sTypeMatchups->cursor = second;
+        sTypeMatchups->pairTab = TM_PAIR_DEFENDING;
         sTypeMatchups->seedMode = TM_SEED_PAIR;
     }
     else
@@ -10585,6 +10634,7 @@ static void Task_HandleTypeMatchupsPickerInput(u8 taskId)
         }
         else if (sTypeMatchups->held != TM_NO_HOLD)
         {
+            sTypeMatchups->pairTab = TM_PAIR_DEFENDING;
             TypeMatchups_DrawPairPage();
             PlaySE(SE_PIN);
             gTasks[taskId].func = Task_HandleTypeMatchupsPairInput;
@@ -10669,9 +10719,24 @@ static void Task_HandleTypeMatchupsPairInput(u8 taskId)
     if (JOY_NEW(B_BUTTON))
     {
         TypeMatchups_GoBack(taskId);
-        return;
     }
-    TypeMatchups_HandleScroll();
+    else if (JOY_NEW(L_BUTTON) && sTypeMatchups->pairTab != TM_PAIR_DEFENDING)
+    {
+        sTypeMatchups->pairTab--;
+        TypeMatchups_DrawPairPage();
+        PlaySE(SE_DEX_PAGE);
+    }
+    else if (JOY_NEW(R_BUTTON) && sTypeMatchups->pairTab != TM_PAIR_TYPE_2
+             && sTypeMatchups->seedMode != TM_SEED_PAIR)
+    {
+        sTypeMatchups->pairTab++;
+        TypeMatchups_DrawPairPage();
+        PlaySE(SE_DEX_PAGE);
+    }
+    else
+    {
+        TypeMatchups_HandleScroll();
+    }
 }
 
 static void Task_ExitTypeMatchups(u8 taskId)
