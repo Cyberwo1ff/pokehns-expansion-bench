@@ -9255,7 +9255,8 @@ static void FillCryMeterWindowTilemapWithBg(void)
 #define TM_LIST_TOP         54   // panel interior, screen y
 #define TM_LIST_HEIGHT      92
 #define TM_LIST_ROWS_MAX    5    // a pairing's ×4 ×2 ×0.5 ×0.25 ×0
-#define TM_INFO_ROW_H       22
+#define TM_INFO_ROW_H       22   // name and one meaning line; each further line adds 10
+#define TM_INFO_ROW_PAD     5    // under every row, the last included, so text clears the separators and the panel edge
 #define TM_SCROLL_SPEED     2    // pixels per frame while up or down is held
 #define TM_TRACK_X          233  // the dex list's scrollbar: a 2px grey track...
 #define TM_TRACK_W          2
@@ -9276,11 +9277,11 @@ static void FillCryMeterWindowTilemapWithBg(void)
 #define TM_TOP_PANEL_Y      2    // window row where the top panel's white interior starts
 #define TM_TOP_PANEL_H      30
 #define TM_MAIN_WIN_X       8    // screen position of WIN_TM_MAIN, for converting layout coordinates
-#define TM_MAIN_WIN_Y       48
+#define TM_MAIN_WIN_Y       48   // where WIN_TM_MAIN's top row shows at no scroll (see TypeMatchups_SetListScroll)
 #define TM_LIST_WIN_Y       (TM_LIST_TOP - TM_MAIN_WIN_Y)
 #define TM_TEXT_PAL         6    // BG palette for WIN_TM_MAIN: the dex text colours plus the battle symbol colours
 #define TM_BAR_FIRST_TILE   0x60 // bar tiles load straight after tileset_menu2's 96 tiles
-#define TM_BG1_FIRST_TILE   272  // BG1's windows sit after those bar tiles (0x60-0x10F)
+#define TM_BG1_FIRST_TILE   0x100 // BG1's windows sit after the bar tileset's 160 tiles, padding included (0x60-0xFF)
 #define TAG_TYPE_MATCHUPS_CURSOR 4099
 #define TM_NO_HOLD          0xFF
 #define TYPE_INFO_PALETTE_NUM_OFFSET -1 // same palette shift as the info screen's type icons
@@ -9318,7 +9319,7 @@ enum
 {
     TM_BAR_TYPES,
     TM_BAR_INFO,
-    TM_BAR_ATTACKING,
+    TM_BAR_ATTACKING,      // DEFENDING / ATTACKING, the named tab active
     TM_BAR_DEFENDING,
     TM_BAR_PAIRING,
     TM_BAR_DEFENDING_ONLY,
@@ -9358,7 +9359,8 @@ struct TypeMatchupsInfoRow
     u8 symbolColors[3];
     const u8 *multiplier;
     const u8 *phrase;
-    const u8 *meaning;
+    const u8 *meaning[3]; // what the target is to it, any note, then the damage (×1 only has the damage);
+                          // the matchup pages' own terms are in black, as {COLOR 15} within the grey
 };
 
 static EWRAM_DATA struct TypeMatchupsView *sTypeMatchups = NULL;
@@ -9385,8 +9387,8 @@ static const u8 sTypeMatchupsColor_Red[] = {TEXT_COLOR_TRANSPARENT, 7, 6};
 
 static const u8 sText_TypeMatchups_Choose[] = _("Choose a type to see its matchups.");
 static const u8 sText_TypeMatchups_Stacks[] = _("Damage stacks across both types.");
-static const u8 sText_TypeMatchups_InfoTitle[] = _("What the matchups mean");
-static const u8 sText_TypeMatchups_InfoDualTypes[] = _("Two types stack: ×4 and ×0.25 are possible.");
+static const u8 sText_TypeMatchups_InfoTitle[] = _("Type Effectiveness Guide");
+static const u8 sText_TypeMatchups_InfoDualTypes[] = _("Dual Types: If either type is IMMUNE, it's ×0.");
 static const u8 sText_TypeMatchups_Attacking[] = _("Damage MOVES deal to each type");
 static const u8 sText_TypeMatchups_Defending[] = _("Damage POKéMON takes from each type");
 static const u8 sText_TypeMatchups_None[] = _("None");
@@ -9411,7 +9413,7 @@ static const u8 *const sTypeMatchupsLabels[][3][2] =
     {
         {COMPOUND_STRING("WEAK TO"), NULL},
         {COMPOUND_STRING("RESISTS"), NULL},
-        {COMPOUND_STRING("IMMUNE"), NULL},
+        {COMPOUND_STRING("IMMUNE TO"), NULL},
     },
 };
 
@@ -9422,7 +9424,7 @@ static const u8 *const sTypeMatchupsPairLabels[TM_LIST_ROWS_MAX][2] =
     {COMPOUND_STRING("WEAK TO"), NULL},
     {COMPOUND_STRING("RESISTS"), NULL},
     {COMPOUND_STRING("DOUBLE"), COMPOUND_STRING("RESISTS")},
-    {COMPOUND_STRING("IMMUNE"), NULL},
+    {COMPOUND_STRING("IMMUNE TO"), NULL},
 };
 
 // Symbols are the battle move menu's effectiveness indicator (MoveSelectionDisplayMoveEffectiveness)
@@ -9432,43 +9434,45 @@ static const struct TypeMatchupsInfoRow sTypeMatchupsInfoRows[] =
         .symbol = COMPOUND_STRING("{CIRCLE_DOT}"),
         .symbolColors = {TEXT_COLOR_TRANSPARENT, 8, 9},
         .multiplier = COMPOUND_STRING("×4"),
-        .phrase = COMPOUND_STRING("DOUBLE WEAK TO"),
-        .meaning = COMPOUND_STRING("Both of its types are weak to it."),
+        .phrase = COMPOUND_STRING("SUPER EFFECTIVE"),
+        .meaning = {COMPOUND_STRING("Target is {COLOR 15}DOUBLE WEAK TO{COLOR 5} it."), COMPOUND_STRING("Only possible on Dual Types."),
+                    COMPOUND_STRING("Quadruple damage.")},
     },
     {
         .symbol = COMPOUND_STRING("{CIRCLE_DOT}"),
         .symbolColors = {TEXT_COLOR_TRANSPARENT, 8, 9},
         .multiplier = COMPOUND_STRING("×2"),
         .phrase = COMPOUND_STRING("SUPER EFFECTIVE"),
-        .meaning = COMPOUND_STRING("Double damage. Target is WEAK TO it."),
+        .meaning = {COMPOUND_STRING("Target is {COLOR 15}WEAK TO{COLOR 5} it."), COMPOUND_STRING("Double damage.")},
     },
     {
         .symbol = COMPOUND_STRING("{CIRCLE_HOLLOW}"),
         .symbolColors = {TEXT_COLOR_TRANSPARENT, 10, 11},
         .multiplier = COMPOUND_STRING("×1"),
         .phrase = COMPOUND_STRING("EFFECTIVE"),
-        .meaning = COMPOUND_STRING("Regular damage."),
+        .meaning = {COMPOUND_STRING("Regular damage.")},
     },
     {
         .symbol = COMPOUND_STRING("{TRIANGLE}"),
         .symbolColors = {TEXT_COLOR_TRANSPARENT, 12, 13},
         .multiplier = COMPOUND_STRING("×0.5"),
         .phrase = COMPOUND_STRING("NOT VERY EFFECTIVE"),
-        .meaning = COMPOUND_STRING("Half damage. Target RESISTS it."),
+        .meaning = {COMPOUND_STRING("Target {COLOR 15}RESISTS{COLOR 5} it."), COMPOUND_STRING("Half damage.")},
     },
     {
         .symbol = COMPOUND_STRING("{TRIANGLE}"),
         .symbolColors = {TEXT_COLOR_TRANSPARENT, 12, 13},
         .multiplier = COMPOUND_STRING("×0.25"),
-        .phrase = COMPOUND_STRING("DOUBLE RESISTS"),
-        .meaning = COMPOUND_STRING("Both of its types resist it."),
+        .phrase = COMPOUND_STRING("NOT VERY EFFECTIVE"),
+        .meaning = {COMPOUND_STRING("Target {COLOR 15}DOUBLE RESISTS{COLOR 5} it."), COMPOUND_STRING("Only possible on Dual Types."),
+                    COMPOUND_STRING("Quarter damage.")},
     },
     {
         .symbol = COMPOUND_STRING("{BIG_MULT_X}"),
         .symbolColors = {TEXT_COLOR_TRANSPARENT, 2, 4},
         .multiplier = COMPOUND_STRING("×0"),
         .phrase = COMPOUND_STRING("NO EFFECT"),
-        .meaning = COMPOUND_STRING("No damage. Target is IMMUNE to it."),
+        .meaning = {COMPOUND_STRING("Target is {COLOR 15}IMMUNE TO{COLOR 5} it."), COMPOUND_STRING("No damage.")},
     },
 };
 
@@ -9489,9 +9493,11 @@ static const struct WindowTemplate sTypeMatchups_WindowTemplates[] =
     {
         .bg = 2,
         .tilemapLeft = 1,
-        .tilemapTop = 6,
+        .tilemapTop = 0, // BG2's whole map, so the list can run to 256px; the scroll puts it in place
         .width = 28,
-        .height = 18, // taller than the panel: the overflow is what scrolls into view
+        // Taller than the panel: the overflow is what scrolls into view. 896 tiles run past
+        // charBase 2 into charBase 3, which nothing else on this screen uses.
+        .height = 32,
         .paletteNum = TM_TEXT_PAL,
         .baseBlock = 1,
     },
@@ -9728,11 +9734,18 @@ static void TypeMatchups_DrawScrollbar(void)
     CopyWindowToVram(WIN_TM_SCROLLBAR, COPYWIN_GFX);
 }
 
+// WIN_TM_MAIN starts at the top of BG2's map. The 256px map wraps, so scrolling back by
+// TM_MAIN_WIN_Y shows its top row at that screen y, as if the window sat there.
+static void TypeMatchups_SetListScroll(s32 scroll)
+{
+    SetGpuReg(REG_OFFSET_BG2VOFS, (scroll - TM_MAIN_WIN_Y) & 0xFF);
+}
+
 static void TypeMatchups_ApplyScroll(void)
 {
     u32 i;
 
-    SetGpuReg(REG_OFFSET_BG2VOFS, sTypeMatchups->scroll);
+    TypeMatchups_SetListScroll(sTypeMatchups->scroll);
     for (i = 0; i < sTypeMatchups->listIconCount; i++)
     {
         struct Sprite *sprite = &gSprites[sTypeMatchups->iconSpriteIds[i]];
@@ -9748,7 +9761,7 @@ static void TypeMatchups_ResetScroll(void)
     sTypeMatchups->scroll = 0;
     sTypeMatchups->listHeight = 0;
     sTypeMatchups->listIconCount = 0;
-    SetGpuReg(REG_OFFSET_BG2VOFS, 0);
+    TypeMatchups_SetListScroll(0);
     TypeMatchups_DrawScrollbar();
 }
 
@@ -9927,7 +9940,7 @@ static void TypeMatchups_UpdatePickerCursor(void)
 
 static void TypeMatchups_DrawInfo(void)
 {
-    u32 i;
+    u32 i, j, y = TM_LIST_WIN_Y;
 
     TypeMatchups_ClearTopPanel();
     TypeMatchups_Print(WIN_TM_TOP, FONT_NORMAL, 2, 2, sTypeMatchupsColor_Black, sText_TypeMatchups_InfoTitle);
@@ -9937,17 +9950,24 @@ static void TypeMatchups_DrawInfo(void)
     for (i = 0; i < ARRAY_COUNT(sTypeMatchupsInfoRows); i++)
     {
         const struct TypeMatchupsInfoRow *row = &sTypeMatchupsInfoRows[i];
-        u32 y = TM_LIST_WIN_Y + i * TM_INFO_ROW_H;
+        u32 lines, extra, symbolY;
+
+        for (lines = 1; lines < ARRAY_COUNT(row->meaning) && row->meaning[lines] != NULL; lines++)
+            ;
+        extra = 10 * (lines - 1);
+        symbolY = y + 3 + extra / 2; // stays centred on a taller row
 
         if (i != 0)
             TypeMatchups_DrawSeparator(y - 1);
-        TypeMatchups_Print(WIN_TM_MAIN, FONT_NARROW, 0, y + 3, row->symbolColors, row->symbol);
-        TypeMatchups_Print(WIN_TM_MAIN, FONT_NORMAL, 14, y + 3, sTypeMatchupsColor_Red, row->multiplier);
+        TypeMatchups_Print(WIN_TM_MAIN, FONT_NARROW, 0, symbolY, row->symbolColors, row->symbol);
+        TypeMatchups_Print(WIN_TM_MAIN, FONT_NORMAL, 14, symbolY, sTypeMatchupsColor_Red, row->multiplier);
         TypeMatchups_Print(WIN_TM_MAIN, FONT_SMALL, 54, y, sTypeMatchupsColor_Black, row->phrase);
-        TypeMatchups_Print(WIN_TM_MAIN, FONT_SMALL, 54, y + 10, sTypeMatchupsColor_Gray, row->meaning);
+        for (j = 0; j < lines; j++)
+            TypeMatchups_Print(WIN_TM_MAIN, FONT_SMALL, 54, y + 10 + 10 * j, sTypeMatchupsColor_Gray, row->meaning[j]);
+        y += TM_INFO_ROW_H + extra + TM_INFO_ROW_PAD;
     }
     sTypeMatchups->listIconCount = 0;
-    sTypeMatchups->listHeight = TM_INFO_ROW_H * ARRAY_COUNT(sTypeMatchupsInfoRows);
+    sTypeMatchups->listHeight = y - TM_LIST_WIN_Y;
     sTypeMatchups->scroll = 0;
     TypeMatchups_ApplyScroll();
 }
@@ -10294,6 +10314,14 @@ static void Task_HandleTypeMatchupsPickerInput(u8 taskId)
 {
     u32 cursor;
 
+    // B on the INFO tab goes back to TYPE MATCHUPS, as L does, rather than leaving the screen
+    if (JOY_NEW(L_BUTTON | B_BUTTON) && sTypeMatchups->tab == TM_TAB_INFO)
+    {
+        sTypeMatchups->tab = TM_TAB_TYPES;
+        TypeMatchups_DrawPicker();
+        PlaySE(SE_DEX_PAGE);
+        return;
+    }
     if (JOY_NEW(B_BUTTON))
     {
         PlaySE(SE_PC_OFF);
@@ -10305,13 +10333,6 @@ static void Task_HandleTypeMatchupsPickerInput(u8 taskId)
     if (JOY_NEW(R_BUTTON) && sTypeMatchups->tab == TM_TAB_TYPES)
     {
         sTypeMatchups->tab = TM_TAB_INFO;
-        TypeMatchups_DrawPicker();
-        PlaySE(SE_DEX_PAGE);
-        return;
-    }
-    if (JOY_NEW(L_BUTTON) && sTypeMatchups->tab == TM_TAB_INFO)
-    {
-        sTypeMatchups->tab = TM_TAB_TYPES;
         TypeMatchups_DrawPicker();
         PlaySE(SE_DEX_PAGE);
         return;
@@ -10354,7 +10375,7 @@ static void Task_HandleTypeMatchupsPickerInput(u8 taskId)
         }
         else
         {
-            sTypeMatchups->page = TM_PAGE_ATTACKING;
+            sTypeMatchups->page = TM_PAGE_DEFENDING;
             TypeMatchups_DrawPage();
             PlaySE(SE_PIN);
             gTasks[taskId].func = Task_HandleTypeMatchupsPageInput;
@@ -10393,16 +10414,16 @@ static void Task_HandleTypeMatchupsPageInput(u8 taskId)
     {
         TypeMatchups_GoBack(taskId);
     }
-    else if (JOY_NEW(L_BUTTON) && sTypeMatchups->page == TM_PAGE_DEFENDING
-             && sTypeMatchups->seedMode != TM_SEED_SINGLE)
+    else if (JOY_NEW(L_BUTTON) && sTypeMatchups->page == TM_PAGE_ATTACKING)
     {
-        sTypeMatchups->page = TM_PAGE_ATTACKING;
+        sTypeMatchups->page = TM_PAGE_DEFENDING;
         TypeMatchups_DrawPage();
         PlaySE(SE_DEX_PAGE);
     }
-    else if (JOY_NEW(R_BUTTON) && sTypeMatchups->page == TM_PAGE_ATTACKING)
+    else if (JOY_NEW(R_BUTTON) && sTypeMatchups->page == TM_PAGE_DEFENDING
+             && sTypeMatchups->seedMode != TM_SEED_SINGLE)
     {
-        sTypeMatchups->page = TM_PAGE_DEFENDING;
+        sTypeMatchups->page = TM_PAGE_ATTACKING;
         TypeMatchups_DrawPage();
         PlaySE(SE_DEX_PAGE);
     }
